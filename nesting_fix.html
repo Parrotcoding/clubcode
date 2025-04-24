@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Attribute Mad-Libs – Bio Builder</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
+body{max-width:700px;margin:auto;padding:1.5rem;background:#f8fafc;line-height:1.5}
+h1{text-align:center;font-size:1.8rem;margin-bottom:1rem}
+label{display:block;margin:.35rem 0}
+input{padding:.4rem;width:100%}
+button{margin-top:.6rem;padding:.45rem 1.2rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
+button:hover{background:#08365c}
+#output{margin-top:1rem;background:#fff;border:1px solid #cbd5e1;padding:1rem;border-radius:6px}
+code{background:#eef;border-radius:4px;padding:.2rem .3rem}
+</style>
+</head>
+<body>
+<h1>Attribute Mad-Libs – Build Your Bio Image</h1>
+<p>Fill the blanks and generate a valid <code>&lt;img&gt;</code> tag.</p>
+<form id="mlForm">
+  <label>File name (src): <input required name="src" placeholder="me.jpg"></label>
+  <label>Alt text (description): <input required name="alt" placeholder="Student smiling at laptop"></label>
+  <button>Generate Tag</button>
+</form>
+<div id="output"></div>
+
+<script>
+document.getElementById('mlForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const d=new FormData(e.target);
+ const tag=`&lt;img src="${d.get('src')}" alt="${d.get('alt')}"&gt;`;
+ document.getElementById('output').innerHTML=`<p>Your tag:</p><pre><code>${tag}</code></pre>`;
+});
+</script>
+</body>
+</html>
