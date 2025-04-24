@@ -4,147 +4,138 @@
 <meta charset="UTF-8">
 <title>Instructor Dashboard</title>
 <style>
-*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
-body{max-width:1000px;margin:auto;padding:1.5rem;line-height:1.55;background:#f2f6fa}
-header{text-align:center;margin-bottom:1.5rem}
-h1{font-size:2rem;margin-bottom:.25rem}
-section{margin-bottom:2rem;padding:1rem;border:1px solid #b8c4d6;border-radius:6px;background:#fff}
-h2{color:#0c4a7f;margin-bottom:.6rem}
-input,select{padding:.35rem;margin:.25rem 0;width:100%}
-button{padding:.45rem 1rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
-button:hover{background:#08365c}
-table{width:100%;border-collapse:collapse;margin-top:.5rem}
-th,td{border:1px solid #cbd5e1;padding:.4rem;text-align:left}
-thead{background:#dde7f3}
-pre{background:#1e293b;color:#cbd5e1;padding:1rem;border-radius:6px;overflow:auto;margin-top:.5rem}
-details{margin:.6rem 0}
+  *{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
+  body{max-width:1000px;margin:auto;padding:1.5rem;line-height:1.55;background:#f2f6fa}
+  header{text-align:center;margin-bottom:1.5rem}
+  h1{font-size:2rem;margin-bottom:.25rem}
+  section{margin-bottom:2rem;padding:1rem;border:1px solid #b8c4d6;border-radius:6px;background:#fff}
+  h2{color:#0c4a7f;margin-bottom:.6rem}
+  button{padding:.45rem 1rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
+  button:hover{background:#08365c}
+  table{width:100%;border-collapse:collapse;margin-top:.5rem}
+  th,td{border:1px solid #cbd5e1;padding:.4rem;text-align:left}
+  thead{background:#dde7f3}
+  .toggle-btn{background:#fff;color:#0c4a7f;border:1px solid #0c4a7f;padding:.25rem .5rem;border-radius:4px;}
+  .toggle-btn.published{background:#0c4a7f;color:#fff;}
 </style>
 </head>
 <body>
-<header>
-  <h1>Instructor Dashboard</h1>
-  <p><em>Add resources &amp; quizzes or review student submissions. Changes appear instantly on the Student Portal.</em></p>
-</header>
+  <header>
+    <h1>Instructor Dashboard</h1>
+    <p><em>Publish/unpublish resources, add quizzes, and view submissions.</em></p>
+  </header>
 
-<main>
+  <main>
+    <section>
+      <h2>Manage Resources</h2>
+      <table>
+        <thead><tr><th>Title</th><th>Publish</th></tr></thead>
+        <tbody id="resBody"></tbody>
+      </table>
+    </section>
 
-<section>
-  <h2>Curriculum Outline</h2>
-  <details open><summary>Toggle View</summary>
-<pre>
-Week 1-2   Markup Vocabulary
-Week 3-4   HTML Skeleton
-Week 5-6   Text Content
-Week 7     Hyperlinks
-Week 8     Images &amp; Alt
-Week 9     Lists &amp; Nav
-Week 10-11 Tables
-Week 12    Inline CSS Taste
-Week 13-14 Multimedia &amp; Embeds
-Week 15    Forms
-Week 16    Capstone
-</pre>
-  </details>
-</section>
+    <section>
+      <h2>Create Quiz (MCQ)</h2>
+      <form id="quizForm">
+        <input name="question" placeholder="Question text" required><br>
+        <input name="choice0" placeholder="Choice A" required>
+        <input name="choice1" placeholder="Choice B" required>
+        <input name="choice2" placeholder="Choice C" required>
+        <input name="choice3" placeholder="Choice D" required><br>
+        <label>Correct answer:
+          <select name="answer">
+            <option value="0">A</option><option value="1">B</option>
+            <option value="2">C</option><option value="3">D</option>
+          </select>
+        </label>
+        <button>Create Quiz</button>
+      </form>
+    </section>
 
-<section>
-  <h2>Add Resource</h2>
-  <form id="resourceForm">
-    <input name="title" placeholder="Title" required>
-    <input name="url" type="url" placeholder="https://example.com" required>
-    <button>Add Resource</button>
-  </form>
-</section>
-
-<section>
-  <h2>Create Quiz (MCQ)</h2>
-  <form id="quizForm">
-    <input name="question" placeholder="Question text" required><br>
-    <input name="choice0" placeholder="Choice A" required>
-    <input name="choice1" placeholder="Choice B" required>
-    <input name="choice2" placeholder="Choice C" required>
-    <input name="choice3" placeholder="Choice D" required><br>
-    <label>Correct answer:
-      <select name="answer"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select>
-    </label>
-    <button>Create Quiz</button>
-  </form>
-</section>
-
-<section>
-  <h2>Sample Code Snippets</h2>
-  <details><summary>HTML Skeleton</summary>
-<pre>&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-  &lt;head&gt;
-    &lt;meta charset="UTF-8"&gt;
-    &lt;title&gt;My Page&lt;/title&gt;
-  &lt;/head&gt;
-  &lt;body&gt;
-    &lt;h1&gt;Hello World&lt;/h1&gt;
-  &lt;/body&gt;
-&lt;/html&gt;</pre>
-  </details>
-  <details><summary>Image with alt</summary>
-<pre>&lt;img src="images/cat.jpg" alt="Orange cat sleeping on bookshelf"&gt;</pre>
-  </details>
-</section>
-
-<section>
-  <h2>Quiz Submissions</h2>
-  <button id="refreshSubs">Refresh</button>
-  <table>
-    <thead><tr><th>Quiz Question</th><th>Student</th><th>Answer</th><th>✓/✗</th><th>Time</th></tr></thead>
-    <tbody id="subBody"><tr><td colspan="5">No submissions yet.</td></tr></tbody>
-  </table>
-</section>
-
-</main>
+    <section>
+      <h2>Quiz Submissions</h2>
+      <button id="refreshSubs">Refresh</button>
+      <table>
+        <thead><tr><th>Quiz</th><th>Student</th><th>Answer</th><th>✓/✗</th><th>Time</th></tr></thead>
+        <tbody id="subBody"><tr><td colspan="5">No submissions yet.</td></tr></tbody>
+      </table>
+    </section>
+  </main>
 
 <script>
-const load=(k,f)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(f));
-const save=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
-const uuid=()=>`q${Date.now()}${Math.random().toString(16).slice(2)}`;
+  const load = (k,f) => JSON.parse(localStorage.getItem(k) || JSON.stringify(f));
+  const save = (k,d) => localStorage.setItem(k, JSON.stringify(d));
+  const uuid = ()=>`q${Date.now()}${Math.random().toString(16).slice(2)}`;
 
-/* add resource */
-document.getElementById('resourceForm').addEventListener('submit',e=>{
- e.preventDefault();
- const d=new FormData(e.target), res=load('resources',[]);
- res.push({title:d.get('title'),url:d.get('url')});
- save('resources',res); e.target.reset(); alert('Resource added.');
-});
+  // render resource list with toggle
+  function renderResources(){
+    const all = load('resources', []);
+    const body = document.getElementById('resBody');
+    body.innerHTML = all.map(r=>`
+      <tr>
+        <td>${r.title}</td>
+        <td>
+          <button
+            class="toggle-btn ${r.published?'published':''}"
+            data-id="${r.id}"
+          >${r.published?'Unpublish':'Publish'}</button>
+        </td>
+      </tr>
+    `).join('');
+    // attach toggles
+    document.querySelectorAll('.toggle-btn').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.dataset.id;
+        const arr = load('resources',[]);
+        const item = arr.find(x=>x.id===id);
+        item.published = !item.published;
+        save('resources',arr);
+        renderResources();
+      };
+    });
+  }
 
-/* add quiz */
-document.getElementById('quizForm').addEventListener('submit',e=>{
- e.preventDefault();
- const d=new FormData(e.target), quizzes=load('quizzes',[]);
- quizzes.push({
-   id:uuid(),
-   question:d.get('question'),
-   choices:[d.get('choice0'),d.get('choice1'),d.get('choice2'),d.get('choice3')],
-   answer:+d.get('answer')
- });
- save('quizzes',quizzes); e.target.reset(); alert('Quiz created.');
-});
+  // create quiz
+  document.getElementById('quizForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const d = new FormData(e.target);
+    const quizzes = load('quizzes', []);
+    quizzes.push({
+      id: uuid(),
+      question: d.get('question'),
+      choices: [d.get('choice0'), d.get('choice1'), d.get('choice2'), d.get('choice3')],
+      answer: +d.get('answer')
+    });
+    save('quizzes', quizzes);
+    e.target.reset();
+    alert('Quiz created.');
+  });
 
-/* render submissions */
-function renderSubs(){
- const body=document.getElementById('subBody');
- const subs=load('submissions',[]), quizzes=load('quizzes',[]);
- if(!subs.length){body.innerHTML='<tr><td colspan="5">No submissions yet.</td></tr>';return;}
- body.innerHTML=subs.map(s=>{
-   const q=quizzes.find(q=>q.id===s.quizId)||{question:'[deleted]',choices:[]};
-   return `<tr>
-     <td>${q.question}</td>
-     <td>${s.student}</td>
-     <td>${q.choices[s.answerIdx]||s.answerIdx}</td>
-     <td>${s.correct?'✅':'❌'}</td>
-     <td>${new Date(s.time).toLocaleString()}</td>
-   </tr>`;
- }).join('');
-}
-renderSubs();
-document.getElementById('refreshSubs').onclick=renderSubs;
+  // render submissions
+  function renderSubs(){
+    const subs = load('submissions', []);
+    const quizzes = load('quizzes', []);
+    const body = document.getElementById('subBody');
+    if(!subs.length){
+      body.innerHTML = '<tr><td colspan="5">No submissions yet.</td></tr>';
+      return;
+    }
+    body.innerHTML = subs.map(s=>{
+      const q = quizzes.find(q=>q.id===s.quizId) || {question:'[deleted]',choices:[]};
+      return `<tr>
+        <td>${q.question}</td>
+        <td>${s.student}</td>
+        <td>${q.choices[s.answerIdx] || s.answerIdx}</td>
+        <td>${s.correct ? '✅' : '❌'}</td>
+        <td>${new Date(s.time).toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('refreshSubs').onclick = renderSubs;
+
+  // initial render
+  renderResources();
+  renderSubs();
 </script>
 </body>
 </html>
