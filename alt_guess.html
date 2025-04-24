@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alt-Text Guessing Game</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
+body{max-width:800px;margin:auto;padding:1.5rem;background:#f8fafc;line-height:1.5;text-align:center}
+img{max-width:100%;height:auto;border:4px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.15)}
+input{padding:.45rem;width:100%;max-width:400px;margin:.6rem auto;display:block}
+button{padding:.45rem 1.4rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
+button:hover{background:#08365c}
+#feedback{margin-top:.8rem;font-weight:bold}
+</style>
+</head>
+<body>
+<h1>Alt-Text Guessing Game</h1>
+<p>Describe the image in one sentence.</p>
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Golden_Retriever_medium-to-light-coat.jpg/640px-Golden_Retriever_medium-to-light-coat.jpg" alt="A happy golden retriever running through green grass with its tongue out">
+<form id="altForm">
+  <input required name="guess" placeholder="Describe this image…">
+  <button>Check</button>
+</form>
+<div id="feedback"></div>
+
+<script>
+const real=document.querySelector('img').alt.toLowerCase();
+document.getElementById('altForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const guess=new FormData(e.target).get('guess').toLowerCase();
+ const matchWords=guess.split(/\s+/).filter(w=>real.includes(w)).length;
+ const score=matchWords/real.split(/\s+/).length;
+ document.getElementById('feedback').textContent=score>0.5?'Great description ✅':'Add more detail and try again.';
+});
+</script>
+</body>
+</html>
