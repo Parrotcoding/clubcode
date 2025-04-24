@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HTML Fundamentals – Student Portal</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
+body{max-width:900px;margin:auto;padding:1.5rem;line-height:1.55;background:#f7f9fc}
+header{text-align:center;margin-bottom:1.5rem}
+h1{font-size:2rem;margin-bottom:.35rem}
+section{margin-bottom:2rem;padding:1rem;border:1px solid #cdd6e0;border-radius:6px;background:#fff}
+h2{color:#0c4a7f;margin-bottom:.6rem}
+ul{padding-left:1.2rem}
+.quiz{margin-bottom:1rem}
+label{display:block;margin:.25rem 0}
+input[type=text]{padding:.35rem;width:100%;margin:.4rem 0}
+button{padding:.45rem 1rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
+button:hover{background:#08365c}
+hr{border:none;border-top:1px solid #e2e8f0;margin:1rem 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Student Portal</h1>
+  <p>Curriculum resources, online activities, and quizzes.</p>
+</header>
+
+<main>
+  <section id="resourceSection"><h2>Resources &amp; Online Activities</h2><ul id="resourceList"></ul></section>
+  <section id="quizSection"><h2>Quizzes</h2><div id="quizContainer"></div></section>
+</main>
+
+<script>
+const load=(k,f)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(f));
+const save=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+function seedOnce(){
+ if(localStorage.getItem('seeded')) return;
+ save('resources',[
+  {title:'Curriculum Outline (PDF)',url:'files/HTML_curriculum_outline.pdf'},
+  {title:'Unit 0 – Attribute Mad-Libs',url:'madlibs.html'},
+  {title:'Unit 0 – Fix the Bad Nesting',url:'nesting_fix.html'},
+  {title:'Unit 3 – Link Path Quiz',url:'link_path_quiz.html'},
+  {title:'Unit 4 – Alt-Text Guessing Game',url:'alt_guess.html'},
+  {title:'HTML Skeleton Snippet',url:'#'}
+ ]);
+ save('quizzes',[
+  {id:'q1',question:'Which part is the ATTRIBUTE in <img src="cat.jpg" alt="sleepy cat"> ?',choices:['<img','src','cat.jpg','>'],answer:1},
+  {id:'q2',question:'What tag always appears inside <head>?',choices:['<title>','<h1>','<body>','<p>'],answer:0},
+  {id:'q3',question:'Choose the proper closing tag for <p>:',choices:['</paragraph>','</p>','<p/>','</pg>'],answer:1},
+  {id:'q4',question:'A link to a page in the SAME folder should use:',choices:['absolute URL','relative URL','mailto:','FTP path'],answer:1}
+ ]);
+ save('submissions',[]);
+ localStorage.setItem('seeded','yes');
+}
+seedOnce();
+
+/* ---------- render resources ---------- */
+function renderResources(){
+ const list=document.getElementById('resourceList');
+ const res=load('resources',[]);
+ list.innerHTML=res.length?res.map(r=>`<li><a href="${r.url}" target="_blank" rel="noopener">${r.title}</a></li>`).join(''):'<li>No resources yet.</li>';
+}
+
+/* ---------- render quizzes ------------ */
+function renderQuizzes(){
+ const box=document.getElementById('quizContainer');
+ const quizzes=load('quizzes',[]);
+ if(!quizzes.length){box.innerHTML='<p>No quizzes yet.</p>';return;}
+ box.innerHTML=quizzes.map((q,i)=>`
+  <form class="quiz" data-id="${q.id}">
+   <h3>Q${i+1}. ${q.question}</h3>
+   ${q.choices.map((c,j)=>`<label><input type="radio" name="q${q.id}" value="${j}" required> ${c}</label>`).join('')}
+   <input type="text" name="student" placeholder="Your name" required>
+   <button>Submit</button>
+  </form><hr>`).join('');
+ document.querySelectorAll('.quiz').forEach(f=>f.addEventListener('submit',e=>{
+  e.preventDefault();
+  const fd=new FormData(f), id=f.dataset.id, answerIdx=+fd.get(`q${id}`), student=fd.get('student').trim();
+  const q=load('quizzes',[]).find(x=>x.id===id);
+  const correct=answerIdx===q.answer;
+  const subs=load('submissions',[]);
+  subs.push({quizId:id,answerIdx,student,correct,time:Date.now()});
+  save('submissions',subs);
+  alert(correct?'Correct 🎉':'Incorrect.\nCorrect answer: '+q.choices[q.answer]);
+  f.reset();
+ }));
+}
+
+renderResources();
+renderQuizzes();
+</script>
+</body>
+</html>
