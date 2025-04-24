@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Link Path Quiz</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
+body{max-width:700px;margin:auto;padding:1.5rem;background:#f8fafc;line-height:1.5}
+h1{text-align:center;font-size:1.8rem;margin-bottom:1rem}
+label{display:block;margin:.4rem 0}
+button{margin-top:.6rem;padding:.45rem 1.2rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
+button:hover{background:#08365c}
+#out{margin-top:1rem;font-weight:bold}
+</style>
+</head>
+<body>
+<h1>Absolute vs Relative Path Quiz</h1>
+<form id="lpForm">
+  <p><b>1.</b> Path to <code>about.html</code> in the same folder?</p>
+  <label><input type="radio" name="q1" value="a" required> /about.html</label>
+  <label><input type="radio" name="q1" value="b"> about.html</label>
+  <label><input type="radio" name="q1" value="c"> http://example.com/about.html</label>
+
+  <p><b>2.</b> Which is an absolute URL?</p>
+  <label><input type="radio" name="q2" value="a" required> ../images/cat.jpg</label>
+  <label><input type="radio" name="q2" value="b"> https://cats.com/pics/cat.jpg</label>
+  <label><input type="radio" name="q2" value="c"> images/cat.jpg</label>
+
+  <button>Check Answers</button>
+</form>
+<div id="out"></div>
+
+<script>
+document.getElementById('lpForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const d=new FormData(e.target);
+ const correct=(d.get('q1')==='b')+(d.get('q2')==='b');
+ document.getElementById('out').textContent=`You got ${correct} / 2 correct.`;
+});
+</script>
+</body>
+</html>
