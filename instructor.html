@@ -41,60 +41,62 @@
     <div id="subs"></div>
   </section>
 
-<script>
-  const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
-  const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <script>
+    const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Load/manage resources
-  async function loadResources() {
-    const { data } = await supabase.from('resources').select('*').order('title');
-    const tbody = document.getElementById('resTable');
-    tbody.innerHTML = data.map(r=>`
-      <tr>
-        <td>${r.title}</td>
-        <td>${r.published}</td>
-        <td>
-          <button onclick="toggleRes('${r.id}',${!r.published})">
-            ${r.published?'Unpublish':'Publish'}
-          </button>
-        </td>
-      </tr>
-    `).join('');
-  }
-  async function toggleRes(id, pub){
-    await supabase.from('resources').update({ published:pub }).eq('id',id);
+    // Load/manage resources
+    async function loadResources() {
+      const { data } = await supabase.from('resources').select('*').order('title');
+      document.getElementById('resTable').innerHTML = data.map(r=>`
+        <tr>
+          <td>${r.title}</td>
+          <td>${r.published}</td>
+          <td>
+            <button onclick="toggleRes('${r.id}',${!r.published})">
+              ${r.published?'Unpublish':'Publish'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+    async function toggleRes(id, pub) {
+      await supabase
+        .from('resources')
+        .update({ published:pub })
+        .eq('id',id);
+      loadResources();
+    }
+
+    // Create quiz
+    document.getElementById('quizForm').onsubmit = async e => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      await supabase.from('quizzes').insert([{
+        id: f.get('id'),
+        question: f.get('question'),
+        choices: f.get('choices'),
+        answer: +f.get('answer')
+      }]);
+      alert('Quiz added');
+    };
+
+    // Load submissions
+    async function loadSubs() {
+      const { data } = await supabase
+        .from('submissions')
+        .select('quiz_id,student,answer_idx,correct,time')
+        .order('time',{ ascending:false });
+      document.getElementById('subs').innerHTML = data.map(s=>
+        `<div>${s.student} answered Quiz ${s.quiz_id}: ${s.correct?'✅':'❌'} at ${new Date(s.time).toLocaleString()}</div>`
+      ).join('') || '<p>No submissions yet.</p>';
+    }
+    document.getElementById('refreshSubs').onclick = loadSubs;
+
+    // Initial
     loadResources();
-  }
-
-  // Create quiz
-  document.getElementById('quizForm').onsubmit = async e => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    await supabase.from('quizzes').insert([{
-      id:       f.get('id'),
-      question: f.get('question'),
-      choices:  f.get('choices'),
-      answer:   +f.get('answer')
-    }]);
-    alert('Quiz added');
-  };
-
-  // Load submissions
-  async function loadSubs(){
-    const { data } = await supabase
-      .from('submissions')
-      .select('quiz_id,student,answer_idx,correct,time')
-      .order('time', { ascending:false });
-    document.getElementById('subs').innerHTML = data.map(s=>
-      `<div>${s.student} answered Quiz ${s.quiz_id}: ${s.correct?'✅':'❌'} at ${new Date(s.time).toLocaleString()}</div>`
-    ).join('') || '<p>No submissions yet.</p>';
-  }
-  document.getElementById('refreshSubs').onclick = loadSubs;
-
-  // Initial load
-  loadResources();
-  loadSubs();
-</script>
+    loadSubs();
+  </script>
 </body>
 </html>
