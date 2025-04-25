@@ -1,189 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Instructor Dashboard</title>
-<style>
-  *{box-sizing:border-box;font-family:system-ui,Arial,sans-serif;margin:0;padding:0}
-  body{max-width:1000px;margin:auto;padding:1.5rem;line-height:1.55;background:#f2f6fa}
-  header{text-align:center;margin-bottom:1.5rem}
-  h1{font-size:2rem;margin-bottom:.25rem}
-  section{margin-bottom:2rem;padding:1rem;border:1px solid #b8c4d6;border-radius:6px;background:#fff}
-  h2{color:#0c4a7f;margin-bottom:.6rem}
-  button{padding:.45rem 1rem;border:none;border-radius:4px;background:#0c4a7f;color:#fff;cursor:pointer}
-  button:hover{background:#08365c}
-  table{width:100%;border-collapse:collapse;margin-top:.5rem}
-  th,td{border:1px solid #cbd5e1;padding:.4rem;text-align:left}
-  thead{background:#dde7f3}
-  .toggle-btn{background:#fff;color:#0c4a7f;border:1px solid #0c4a7f;padding:.25rem .5rem;border-radius:4px;}
-  .toggle-btn.published{background:#0c4a7f;color:#fff;}
-</style>
+  <meta charset="UTF-8">
+  <title>Instructor Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <style>
+    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px; }
+    h1,h2 { color:#0c4a7f; }
+    table { width:100%; border-collapse:collapse; margin-bottom:1rem; }
+    th,td { border:1px solid #ddd; padding:.5rem; }
+    button { padding:.3rem .6rem; }
+    form > * { display:block; margin:.4rem 0; width:100%; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>Instructor Dashboard</h1>
-    <p><em>Publish/unpublish resources, add quizzes, and view submissions.</em></p>
-  </header>
+  <h1>Instructor Dashboard</h1>
 
-  <main>
-    <section>
-      <h2>Manage Resources</h2>
-      <table>
-        <thead><tr><th>Title</th><th>Publish</th></tr></thead>
-        <tbody id="resBody"></tbody>
-      </table>
-    </section>
+  <section>
+    <h2>Manage Resources</h2>
+    <table>
+      <thead><tr><th>Title</th><th>Published</th><th>Action</th></tr></thead>
+      <tbody id="resTable"></tbody>
+    </table>
+  </section>
 
-    <section>
-      <h2>Create Quiz (MCQ)</h2>
-      <form id="quizForm">
-        <input name="question" placeholder="Question text" required><br>
-        <input name="choice0" placeholder="Choice A" required>
-        <input name="choice1" placeholder="Choice B" required>
-        <input name="choice2" placeholder="Choice C" required>
-        <input name="choice3" placeholder="Choice D" required><br>
-        <label>Correct answer:
-          <select name="answer">
-            <option value="0">A</option><option value="1">B</option>
-            <option value="2">C</option><option value="3">D</option>
-          </select>
-        </label>
-        <button>Create Quiz</button>
-      </form>
-    </section>
+  <section>
+    <h2>Create Quiz</h2>
+    <form id="quizForm">
+      <input name="id" placeholder="ID (e.g. q5)" required>
+      <input name="question" placeholder="Question text" required>
+      <textarea name="choices" placeholder='Choices as JSON array, e.g. ["A","B","C","D"]' required></textarea>
+      <input name="answer" type="number" placeholder="Correct index (0–3)" required min="0" max="3">
+      <button type="submit">Add Quiz</button>
+    </form>
+  </section>
 
-    <section>
-      <h2>Quiz Submissions</h2>
-      <button id="refreshSubs">Refresh</button>
-      <table>
-        <thead><tr><th>Quiz</th><th>Student</th><th>Answer</th><th>✓/✗</th><th>Time</th></tr></thead>
-        <tbody id="subBody"><tr><td colspan="5">No submissions yet.</td></tr></tbody>
-      </table>
-    </section>
-  </main>
+  <section>
+    <h2>Quiz Submissions</h2>
+    <button id="refreshSubs">Refresh</button>
+    <div id="subs"></div>
+  </section>
 
 <script>
-  // Utilities
-  const load = (k, f) => JSON.parse(localStorage.getItem(k) || JSON.stringify(f));
-  const save = (k, d) => localStorage.setItem(k, JSON.stringify(d));
-  const uuid = () => `q${Date.now()}${Math.random().toString(16).slice(2)}`;
+  const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
+  const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Seed resources & quizzes if missing
-  function seedInstructorData() {
-    if (!localStorage.getItem('resources')) {
-      const allResources = [
-        { id:'res0-ml',      title:'Unit 0: Attribute Mad-Libs',           url:'madlibs.html',             published:false },
-        { id:'res0-nest',    title:'Unit 0: Fix the Bad Nesting',         url:'nesting_fix.html',         published:false },
-        { id:'res1-skel',    title:'Unit 1: HTML Skeleton Practice',      url:'#embed-skeleton-snippet',  published:false },
-        { id:'res2-text',    title:'Unit 2: Headings & Paragraphs Lab',   url:'#',                        published:false },
-        { id:'res3-link',    title:'Unit 3: Link Path Quiz',              url:'link_path_quiz.html',      published:false },
-        { id:'res4-img',     title:'Unit 4: Alt-Text Guessing Game',      url:'alt_guess.html',           published:false },
-        { id:'res5-list',    title:'Unit 5: Lists & Navigation Exercise', url:'#',                        published:false },
-        { id:'res6-table',   title:'Unit 6: Tables Workshop',             url:'#',                        published:false },
-        { id:'res7-inline',  title:'Unit 7: Inline CSS Sampler',          url:'#',                        published:false },
-        { id:'res8-media',   title:'Unit 8: Multimedia & Embeds Gallery', url:'#',                        published:false },
-        { id:'res9-form',    title:'Unit 9: Forms Survey',                url:'#',                        published:false },
-        { id:'res10-cap',    title:'Unit 10: Capstone Site Sprint',       url:'#',                        published:false },
-        { id:'pdf-curr',     title:'Curriculum Outline (PDF)',            url:'files/HTML_curriculum_outline.pdf', published:false },
-        { id:'snip-skel',    title:'HTML Skeleton Code Snippet',          url:'#snippet-skeleton',        published:false }
-      ];
-      save('resources', allResources);
-    }
-
-    if (!localStorage.getItem('quizzes')) {
-      const initialQuizzes = [
-        { id:'q1', question:'Which part is the ATTRIBUTE in <img src="cat.jpg" alt="sleepy cat"> ?', choices:['<img','src','cat.jpg','>'], answer:1 },
-        { id:'q2', question:'What tag always appears inside <head>?', choices:['<title>','<h1>','<body>','<p>'], answer:0 },
-        { id:'q3', question:'Choose the proper closing tag for <p>:', choices:['</paragraph>','</p>','<p/>','</pg>'], answer:1 },
-        { id:'q4', question:'A link to a page in the SAME folder should use:', choices:['absolute URL','relative URL','mailto:','FTP path'], answer:1 },
-        // **New quiz questions added**
-        { id:'q5', question:'Which tag is used for creating an unordered list?', choices:['<list>','<ul>','<ol>','<li>'], answer:1 },
-        { id:'q6', question:'How do you comment out code in HTML?', choices:['// comment','/* comment */','<!-- comment -->','** comment **'], answer:2 },
-        { id:'q7', question:'Which attribute sets the address of a link?', choices:['src','href','link','alt'], answer:1 },
-        { id:'q8', question:'Which element holds metadata like <meta> and <title>?', choices:['<header>','<head>','<body>','<footer>'], answer:1 }
-      ];
-      save('quizzes', initialQuizzes);
-    }
-
-    if (!localStorage.getItem('submissions')) {
-      save('submissions', []);
-    }
-  }
-  seedInstructorData();
-
-  // Render the Manage Resources table
-  function renderResources() {
-    const all = load('resources', []);
-    const tbody = document.getElementById('resBody');
-    tbody.innerHTML = all.map(r => `
+  // Load/manage resources
+  async function loadResources() {
+    const { data } = await supabase.from('resources').select('*').order('title');
+    const tbody = document.getElementById('resTable');
+    tbody.innerHTML = data.map(r=>`
       <tr>
         <td>${r.title}</td>
+        <td>${r.published}</td>
         <td>
-          <button class="toggle-btn ${r.published ? 'published' : ''}" data-id="${r.id}">
-            ${r.published ? 'Unpublish' : 'Publish'}
+          <button onclick="toggleRes('${r.id}',${!r.published})">
+            ${r.published?'Unpublish':'Publish'}
           </button>
         </td>
       </tr>
     `).join('');
-
-    // Attach toggle handlers
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-      btn.onclick = () => {
-        const id = btn.dataset.id;
-        const arr = load('resources', []);
-        const item = arr.find(x => x.id === id);
-        item.published = !item.published;
-        save('resources', arr);
-        renderResources();
-      };
-    });
+  }
+  async function toggleRes(id, pub){
+    await supabase.from('resources').update({ published:pub }).eq('id',id);
+    loadResources();
   }
 
-  // Handle quiz creation
-  document.getElementById('quizForm').addEventListener('submit', e => {
+  // Create quiz
+  document.getElementById('quizForm').onsubmit = async e => {
     e.preventDefault();
-    const d = new FormData(e.target);
-    const quizzes = load('quizzes', []);
-    quizzes.push({
-      id: uuid(),
-      question: d.get('question'),
-      choices: [d.get('choice0'), d.get('choice1'), d.get('choice2'), d.get('choice3')],
-      answer: +d.get('answer')
-    });
-    save('quizzes', quizzes);
-    e.target.reset();
-    alert('Quiz created.');
-  });
+    const f = new FormData(e.target);
+    await supabase.from('quizzes').insert([{
+      id:       f.get('id'),
+      question: f.get('question'),
+      choices:  f.get('choices'),
+      answer:   +f.get('answer')
+    }]);
+    alert('Quiz added');
+  };
 
-  // Render quiz submissions
-  function renderSubs() {
-    const subs = load('submissions', []);
-    const quizzes = load('quizzes', []);
-    const tbody = document.getElementById('subBody');
-
-    if (!subs.length) {
-      tbody.innerHTML = '<tr><td colspan="5">No submissions yet.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = subs.map(s => {
-      const q = quizzes.find(q => q.id === s.quizId) || { question: '[deleted]', choices: [] };
-      return `
-        <tr>
-          <td>${q.question}</td>
-          <td>${s.student}</td>
-          <td>${q.choices[s.answerIdx] || s.answerIdx}</td>
-          <td>${s.correct ? '✅' : '❌'}</td>
-          <td>${new Date(s.time).toLocaleString()}</td>
-        </tr>
-      `;
-    }).join('');
+  // Load submissions
+  async function loadSubs(){
+    const { data } = await supabase
+      .from('submissions')
+      .select('quiz_id,student,answer_idx,correct,time')
+      .order('time', { ascending:false });
+    document.getElementById('subs').innerHTML = data.map(s=>
+      `<div>${s.student} answered Quiz ${s.quiz_id}: ${s.correct?'✅':'❌'} at ${new Date(s.time).toLocaleString()}</div>`
+    ).join('') || '<p>No submissions yet.</p>';
   }
-  document.getElementById('refreshSubs').onclick = renderSubs;
+  document.getElementById('refreshSubs').onclick = loadSubs;
 
-  // Initial renders
-  renderResources();
-  renderSubs();
+  // Initial load
+  loadResources();
+  loadSubs();
 </script>
 </body>
 </html>
