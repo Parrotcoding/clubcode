@@ -1,123 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>HTML Fundamentals – Student Portal</title>
-<style>
-  * { box-sizing: border-box; font-family: system-ui,Arial,sans-serif; margin:0; padding:0 }
-  body { max-width:900px; margin:auto; padding:1.5rem; background:#f7f9fc; line-height:1.55 }
-  header { text-align:center; margin-bottom:1.5rem }
-  h1 { font-size:2rem; margin-bottom:.35rem }
-  section { margin-bottom:2rem; padding:1rem; border:1px solid #cdd6e0; border-radius:6px; background:#fff }
-  h2 { color:#0c4a7f; margin-bottom:.6rem }
-  ul { padding-left:1.2rem }
-  .quiz { margin-bottom:1rem }
-  label { display:block; margin:.25rem 0 }
-  input[type=text] { padding:.35rem; width:100%; margin:.4rem 0 }
-  button { padding:.45rem 1rem; border:none; border-radius:4px; background:#0c4a7f; color:#fff; cursor:pointer }
-  button:hover { background:#08365c }
-  hr { border:none; border-top:1px solid #e2e8f0; margin:1rem 0 }
-</style>
+  <meta charset="UTF-8">
+  <title>Student Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <style>
+    /* minimal styling */
+    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px; }
+    h1,h2 { color:#0c4a7f; }
+    .activity, .quiz { background:#f7f9fc; border:1px solid #ddd; padding:1rem; margin-bottom:1rem; }
+    button { margin-top:.5rem; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>Student Portal</h1>
-    <p>Curriculum resources, online activities, and quizzes (published by your instructor).</p>
-  </header>
+  <h1>HTML Fundamentals – Student Portal</h1>
 
-  <main>
-    <section id="resourceSection">
-      <h2>Resources &amp; Activities</h2>
-      <ul id="resourceList"></ul>
-    </section>
+  <section>
+    <h2>Resources &amp; Activities</h2>
+    <div id="resources"></div>
+  </section>
 
-    <section id="quizSection">
-      <h2>Quizzes</h2>
-      <div id="quizContainer"></div>
-    </section>
-  </main>
+  <section>
+    <h2>Quizzes</h2>
+    <div id="quizzes"></div>
+  </section>
 
-<script>
-  // helpers
-  const load = (k,f) => JSON.parse(localStorage.getItem(k) || JSON.stringify(f));
-  const save = (k,d) => localStorage.setItem(k, JSON.stringify(d));
+  <script>
+    // 1. Init Supabase client
+    const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+    const SUPABASE_KEY = 'YOUR_ANON_KEY';
+    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // seed all curriculum items once
-  function seedOnce(){
-    if(localStorage.getItem('seeded')) return;
-    // full list of every resource/activity/page from curriculum:
-    const allResources = [
-      { id:'res0-ml',      title:'Unit 0: Attribute Mad-Libs',           url:'madlibs.html',             published:false },
-      { id:'res0-nest',    title:'Unit 0: Fix the Bad Nesting',         url:'nesting_fix.html',         published:false },
-      { id:'res1-skeleton',title:'Unit 1: HTML Skeleton Practice',      url:'#embed-skeleton-snippet',  published:false },
-      { id:'res2-text',    title:'Unit 2: Headings & Paragraphs Lab',   url:'#',                        published:false },
-      { id:'res3-link',    title:'Unit 3: Link Path Quiz',              url:'link_path_quiz.html',      published:false },
-      { id:'res4-img',     title:'Unit 4: Alt-Text Guessing Game',      url:'alt_guess.html',           published:false },
-      { id:'res5-list',    title:'Unit 5: Lists & Navigation Exercise', url:'#',                        published:false },
-      { id:'res6-table',   title:'Unit 6: Tables Workshop',             url:'#',                        published:false },
-      { id:'res7-inline',  title:'Unit 7: Inline CSS Sampler',          url:'#',                        published:false },
-      { id:'res8-media',   title:'Unit 8: Multimedia & Embeds Gallery', url:'#',                        published:false },
-      { id:'res9-form',    title:'Unit 9: Forms Survey',                url:'#',                        published:false },
-      { id:'res10-cap',    title:'Unit 10: Capstone Site Sprint',       url:'#',                        published:false },
-      { id:'pdf-curr',     title:'Curriculum Outline (PDF)',            url:'files/HTML_curriculum_outline.pdf', published:false },
-      { id:'snip-skel',    title:'HTML Skeleton Code Snippet',          url:'#snippet-skeleton',        published:false }
-    ];
-    save('resources', allResources);
+    // 2. Render published resources
+    async function loadResources() {
+      const { data } = await supabase
+        .from('resources')
+        .select('id,title,code')
+        .eq('published', true)
+        .order('title');
+      const container = document.getElementById('resources');
+      container.innerHTML = data.map(r =>
+        `<div class="activity"><h3>${r.title}</h3>${r.code}</div>`
+      ).join('') || '<p>No resources published yet.</p>';
+    }
 
-    // pre-load quizzes as before
-    save('quizzes', [
-      { id:'q1', question:'Which part is the ATTRIBUTE in <img src="cat.jpg" alt="sleepy cat"> ?', choices:['<img','src','cat.jpg','>'], answer:1 },
-      { id:'q2', question:'What tag always appears inside <head>?', choices:['<title>','<h1>','<body>','<p>'], answer:0 },
-      { id:'q3', question:'Choose the proper closing tag for <p>:', choices:['</paragraph>','</p>','<p/>','</pg>'], answer:1 },
-      { id:'q4', question:'A link to a page in the SAME folder should use:', choices:['absolute URL','relative URL','mailto:','FTP path'], answer:1 }
-    ]);
+    // 3. Render quizzes
+    async function loadQuizzes() {
+      const { data } = await supabase
+        .from('quizzes')
+        .select('*')
+        .order('id');
+      const container = document.getElementById('quizzes');
+      container.innerHTML = data.map((q,i)=>`
+        <form class="quiz" data-id="${q.id}">
+          <h3>Q${i+1}. ${q.question}</h3>
+          ${JSON.parse(q.choices).map((c,j)=>`
+            <label><input type="radio" name="ans" value="${j}" required> ${c}</label>
+          `).join('')}
+          <input type="text" name="student" placeholder="Your name" required>
+          <button type="submit">Submit</button>
+        </form>
+      `).join('') || '<p>No quizzes available.</p>';
 
-    save('submissions', []);
-    localStorage.setItem('seeded','yes');
-  }
-  seedOnce();
-
-  // render only published resources
-  function renderResources(){
-    const all = load('resources', []);
-    const pub = all.filter(r=>r.published);
-    const ul  = document.getElementById('resourceList');
-    ul.innerHTML = pub.length
-      ? pub.map(r=>`<li><a href="${r.url}" target="_blank" rel="noopener">${r.title}</a></li>`).join('')
-      : '<li><em>No resources published yet.</em></li>';
-  }
-
-  // quiz rendering (unchanged)
-  function renderQuizzes(){
-    const box = document.getElementById('quizContainer');
-    const quizzes = load('quizzes', []);
-    if(!quizzes.length){ box.innerHTML = '<p><em>No quizzes yet.</em></p>'; return; }
-    box.innerHTML = quizzes.map((q,i)=>`
-      <form class="quiz" data-id="${q.id}">
-        <h3>Q${i+1}. ${q.question}</h3>
-        ${q.choices.map((c,j)=>`<label><input type="radio" name="q${q.id}" value="${j}" required> ${c}</label>`).join('')}
-        <input type="text" name="student" placeholder="Your name" required>
-        <button>Submit</button>
-      </form><hr>`).join('');
-    document.querySelectorAll('.quiz').forEach(f=>{
-      f.addEventListener('submit', e=>{
-        e.preventDefault();
-        const fd = new FormData(f), id = f.dataset.id;
-        const idx = +fd.get(`q${id}`), student = fd.get('student').trim();
-        const quiz = load('quizzes',[]).find(x=>x.id===id);
-        const correct = idx === quiz.answer;
-        const subs = load('submissions',[]);
-        subs.push({ quizId:id, answerIdx:idx, student, correct, time:Date.now() });
-        save('submissions', subs);
-        alert(correct?'Correct! 🎉':`Incorrect. Correct: ${quiz.choices[quiz.answer]}`);
-        f.reset();
+      // handle submissions
+      document.querySelectorAll('.quiz').forEach(form=>{
+        form.addEventListener('submit', async e=>{
+          e.preventDefault();
+          const id = form.dataset.id;
+          const fd = new FormData(form);
+          const idx = +fd.get('ans');
+          const name = fd.get('student').trim();
+          const correct = idx === (await supabase.from('quizzes').select('answer').eq('id',id).single()).data.answer;
+          await supabase.from('submissions').insert([{ quiz_id:id, student:name, answer_idx:idx, correct }]);
+          alert(correct ? '✅ Correct!' : '❌ Incorrect');
+          form.reset();
+        });
       });
-    });
-  }
+    }
 
-  // initial render
-  renderResources();
-  renderQuizzes();
-</script>
+    // 4. On load
+    loadResources();
+    loadQuizzes();
+  </script>
 </body>
 </html>
