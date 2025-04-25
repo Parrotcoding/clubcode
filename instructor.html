@@ -63,40 +63,84 @@
   </main>
 
 <script>
-  const load = (k,f) => JSON.parse(localStorage.getItem(k) || JSON.stringify(f));
-  const save = (k,d) => localStorage.setItem(k, JSON.stringify(d));
-  const uuid = ()=>`q${Date.now()}${Math.random().toString(16).slice(2)}`;
+  // Utilities
+  const load = (k, f) => JSON.parse(localStorage.getItem(k) || JSON.stringify(f));
+  const save = (k, d) => localStorage.setItem(k, JSON.stringify(d));
+  const uuid = () => `q${Date.now()}${Math.random().toString(16).slice(2)}`;
 
-  // render resource list with toggle
-  function renderResources(){
+  // Seed resources & quizzes if missing
+  function seedInstructorData() {
+    if (!localStorage.getItem('resources')) {
+      const allResources = [
+        { id:'res0-ml',      title:'Unit 0: Attribute Mad-Libs',           url:'madlibs.html',             published:false },
+        { id:'res0-nest',    title:'Unit 0: Fix the Bad Nesting',         url:'nesting_fix.html',         published:false },
+        { id:'res1-skel',    title:'Unit 1: HTML Skeleton Practice',      url:'#embed-skeleton-snippet',  published:false },
+        { id:'res2-text',    title:'Unit 2: Headings & Paragraphs Lab',   url:'#',                        published:false },
+        { id:'res3-link',    title:'Unit 3: Link Path Quiz',              url:'link_path_quiz.html',      published:false },
+        { id:'res4-img',     title:'Unit 4: Alt-Text Guessing Game',      url:'alt_guess.html',           published:false },
+        { id:'res5-list',    title:'Unit 5: Lists & Navigation Exercise', url:'#',                        published:false },
+        { id:'res6-table',   title:'Unit 6: Tables Workshop',             url:'#',                        published:false },
+        { id:'res7-inline',  title:'Unit 7: Inline CSS Sampler',          url:'#',                        published:false },
+        { id:'res8-media',   title:'Unit 8: Multimedia & Embeds Gallery', url:'#',                        published:false },
+        { id:'res9-form',    title:'Unit 9: Forms Survey',                url:'#',                        published:false },
+        { id:'res10-cap',    title:'Unit 10: Capstone Site Sprint',       url:'#',                        published:false },
+        { id:'pdf-curr',     title:'Curriculum Outline (PDF)',            url:'files/HTML_curriculum_outline.pdf', published:false },
+        { id:'snip-skel',    title:'HTML Skeleton Code Snippet',          url:'#snippet-skeleton',        published:false }
+      ];
+      save('resources', allResources);
+    }
+
+    if (!localStorage.getItem('quizzes')) {
+      const initialQuizzes = [
+        { id:'q1', question:'Which part is the ATTRIBUTE in <img src="cat.jpg" alt="sleepy cat"> ?', choices:['<img','src','cat.jpg','>'], answer:1 },
+        { id:'q2', question:'What tag always appears inside <head>?', choices:['<title>','<h1>','<body>','<p>'], answer:0 },
+        { id:'q3', question:'Choose the proper closing tag for <p>:', choices:['</paragraph>','</p>','<p/>','</pg>'], answer:1 },
+        { id:'q4', question:'A link to a page in the SAME folder should use:', choices:['absolute URL','relative URL','mailto:','FTP path'], answer:1 },
+        // **New quiz questions added**
+        { id:'q5', question:'Which tag is used for creating an unordered list?', choices:['<list>','<ul>','<ol>','<li>'], answer:1 },
+        { id:'q6', question:'How do you comment out code in HTML?', choices:['// comment','/* comment */','<!-- comment -->','** comment **'], answer:2 },
+        { id:'q7', question:'Which attribute sets the address of a link?', choices:['src','href','link','alt'], answer:1 },
+        { id:'q8', question:'Which element holds metadata like <meta> and <title>?', choices:['<header>','<head>','<body>','<footer>'], answer:1 }
+      ];
+      save('quizzes', initialQuizzes);
+    }
+
+    if (!localStorage.getItem('submissions')) {
+      save('submissions', []);
+    }
+  }
+  seedInstructorData();
+
+  // Render the Manage Resources table
+  function renderResources() {
     const all = load('resources', []);
-    const body = document.getElementById('resBody');
-    body.innerHTML = all.map(r=>`
+    const tbody = document.getElementById('resBody');
+    tbody.innerHTML = all.map(r => `
       <tr>
         <td>${r.title}</td>
         <td>
-          <button
-            class="toggle-btn ${r.published?'published':''}"
-            data-id="${r.id}"
-          >${r.published?'Unpublish':'Publish'}</button>
+          <button class="toggle-btn ${r.published ? 'published' : ''}" data-id="${r.id}">
+            ${r.published ? 'Unpublish' : 'Publish'}
+          </button>
         </td>
       </tr>
     `).join('');
-    // attach toggles
-    document.querySelectorAll('.toggle-btn').forEach(btn=>{
-      btn.onclick = ()=>{
+
+    // Attach toggle handlers
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.onclick = () => {
         const id = btn.dataset.id;
-        const arr = load('resources',[]);
-        const item = arr.find(x=>x.id===id);
+        const arr = load('resources', []);
+        const item = arr.find(x => x.id === id);
         item.published = !item.published;
-        save('resources',arr);
+        save('resources', arr);
         renderResources();
       };
     });
   }
 
-  // create quiz
-  document.getElementById('quizForm').addEventListener('submit', e=>{
+  // Handle quiz creation
+  document.getElementById('quizForm').addEventListener('submit', e => {
     e.preventDefault();
     const d = new FormData(e.target);
     const quizzes = load('quizzes', []);
@@ -111,29 +155,33 @@
     alert('Quiz created.');
   });
 
-  // render submissions
-  function renderSubs(){
+  // Render quiz submissions
+  function renderSubs() {
     const subs = load('submissions', []);
     const quizzes = load('quizzes', []);
-    const body = document.getElementById('subBody');
-    if(!subs.length){
-      body.innerHTML = '<tr><td colspan="5">No submissions yet.</td></tr>';
+    const tbody = document.getElementById('subBody');
+
+    if (!subs.length) {
+      tbody.innerHTML = '<tr><td colspan="5">No submissions yet.</td></tr>';
       return;
     }
-    body.innerHTML = subs.map(s=>{
-      const q = quizzes.find(q=>q.id===s.quizId) || {question:'[deleted]',choices:[]};
-      return `<tr>
-        <td>${q.question}</td>
-        <td>${s.student}</td>
-        <td>${q.choices[s.answerIdx] || s.answerIdx}</td>
-        <td>${s.correct ? '✅' : '❌'}</td>
-        <td>${new Date(s.time).toLocaleString()}</td>
-      </tr>`;
+
+    tbody.innerHTML = subs.map(s => {
+      const q = quizzes.find(q => q.id === s.quizId) || { question: '[deleted]', choices: [] };
+      return `
+        <tr>
+          <td>${q.question}</td>
+          <td>${s.student}</td>
+          <td>${q.choices[s.answerIdx] || s.answerIdx}</td>
+          <td>${s.correct ? '✅' : '❌'}</td>
+          <td>${new Date(s.time).toLocaleString()}</td>
+        </tr>
+      `;
     }).join('');
   }
   document.getElementById('refreshSubs').onclick = renderSubs;
 
-  // initial render
+  // Initial renders
   renderResources();
   renderSubs();
 </script>
