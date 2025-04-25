@@ -2,44 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Instructor Dashboard</title>
-  <!-- Supabase UMD first -->
+  <title>Student Portal</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
     body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px; }
     h1,h2 { color:#0c4a7f; }
-    table { width:100%; border-collapse:collapse; margin-bottom:1rem; }
-    th,td { border:1px solid #ddd; padding:.5rem; }
-    button { padding:.3rem .6rem; }
-    form > * { display:block; margin:.4rem 0; width:100%; }
+    .activity, .quiz { background:#f7f9fc; border:1px solid #ddd; padding:1rem; margin-bottom:1rem; }
+    button { margin-top:.5rem; }
+    label { display:block; margin:.4rem 0; }
+    input[type="text"] { width:100%; padding:.4rem; }
   </style>
 </head>
 <body>
-  <h1>Instructor Dashboard</h1>
+  <h1>HTML Fundamentals – Student Portal</h1>
 
   <section>
-    <h2>Manage Resources</h2>
-    <table>
-      <thead><tr><th>Title</th><th>Published</th><th>Action</th></tr></thead>
-      <tbody id="resTable"></tbody>
-    </table>
+    <h2>Resources &amp; Activities</h2>
+    <div id="resources"></div>
   </section>
 
   <section>
-    <h2>Create Quiz</h2>
-    <form id="quizForm">
-      <input name="id" placeholder="ID (e.g. q5)" required>
-      <input name="question" placeholder="Question text" required>
-      <textarea name="choices" placeholder='Choices as JSON array, e.g. ["A","B","C","D"]' required></textarea>
-      <input name="answer" type="number" placeholder="Correct index (0–3)" required min="0" max="3">
-      <button type="submit">Add Quiz</button>
-    </form>
-  </section>
-
-  <section>
-    <h2>Quiz Submissions</h2>
-    <button id="refreshSubs">Refresh</button>
-    <div id="subs"></div>
+    <h2>Quizzes</h2>
+    <div id="quizzes"></div>
   </section>
 
   <script>
@@ -48,56 +32,78 @@
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
       const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Load/manage resources
+      // Load published resources
       async function loadResources() {
-        const { data } = await supa.from('resources').select('*').order('title');
-        document.getElementById('resTable').innerHTML = data.map(r=>`
-          <tr>
-            <td>${r.title}</td>
-            <td>${r.published}</td>
-            <td>
-              <button onclick="toggleRes('${r.id}',${!r.published})">
-                ${r.published?'Unpublish':'Publish'}
-              </button>
-            </td>
-          </tr>
-        `).join('');
-      }
-
-      // Toggle publish state
-      window.toggleRes = async (id, pub) => {
-        await supa.from('resources').update({ published:pub }).eq('id',id);
-        loadResources();
-      };
-
-      // Create quiz
-      document.getElementById('quizForm').onsubmit = async e => {
-        e.preventDefault();
-        const f = new FormData(e.target);
-        await supa.from('quizzes').insert([{
-          id:       f.get('id'),
-          question: f.get('question'),
-          choices:  f.get('choices'),
-          answer:   +f.get('answer')
-        }]);
-        alert('Quiz added');
-      };
-
-      // Load submissions
-      async function loadSubs() {
         const { data } = await supa
-          .from('submissions')
-          .select('quiz_id,student,answer_idx,correct,time')
-          .order('time',{ ascending:false });
-        document.getElementById('subs').innerHTML = data.map(s=>
-          `<div>${s.student} answered Quiz ${s.quiz_id}: ${s.correct?'✅':'❌'} at ${new Date(s.time).toLocaleString()}</div>`
-        ).join('') || '<p>No submissions yet.</p>';
+          .from('resources')
+          .select('title,code')
+          .eq('published', true)
+          .order('title');
+        const container = document.getElementById('resources');
+        container.innerHTML = data.length
+          ? data.map(r => `<div class="activity"><h3>${r.title}</h3>${r.code}</div>`).join('')
+          : '<p>No resources published yet.</p>';
       }
-      document.getElementById('refreshSubs').onclick = loadSubs;
+
+      // Load quizzes
+      async function loadQuizzes() {
+        const { data } = await supa
+          .from('quizzes')
+          .select('*')
+          .order('id');
+        const container = document.getElementById('quizzes');
+        if (!data.length) {
+          container.innerHTML = '<p>No quizzes available.</p>';
+          return;
+        }
+
+        container.innerHTML = data.map((q, i) => {
+          // If choices is a string, parse; if it's already an array, use directly
+          const choices = Array.isArray(q.choices) ? q.choices : JSON.parse(q.choices);
+          return `
+            <form class="quiz" data-id="${q.id}">
+              <h3>Q${i+1}. ${q.question}</h3>
+              ${choices.map((c, j) => `
+                <label>
+                  <input type="radio" name="ans" value="${j}" required> ${c}
+                </label>
+              `).join('')}
+              <input type="text" name="student" placeholder="Your name" required>
+              <button type="submit">Submit</button>
+            </form>
+          `;
+        }).join('');
+
+        // Attach handlers
+        document.querySelectorAll('.quiz').forEach(form => {
+          form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const id = form.dataset.id;
+            const fd = new FormData(form);
+            const idx = +fd.get('ans');
+            const name = fd.get('student').trim();
+
+            // Fetch correct answer
+            const { data: quiz } = await supa
+              .from('quizzes')
+              .select('answer')
+              .eq('id', id)
+              .single();
+
+            const correct = idx === quiz.answer;
+            await supa
+              .from('submissions')
+              .insert([{ quiz_id: id, student: name, answer_idx: idx, correct }]);
+
+            alert(correct ? '✅ Correct!' : '❌ Incorrect');
+            form.reset();
+          });
+        });
+      }
 
       // Initial load
       await loadResources();
-      await loadSubs();
+      await loadQuizzes();
     });
   </script>
 </body>
