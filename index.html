@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Student Portal</title>
-  <!-- Supabase UMD -->
+  <!-- 1. Load Supabase first -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
     body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px; }
@@ -25,72 +25,63 @@
     <div id="quizzes"></div>
   </section>
 
+  <!-- 2. Then our code -->
   <script>
-    // 1. Init Supabase client
-    const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Initialize Supabase
+      const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
+      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 2. Render published resources
-    async function loadResources() {
-      const { data } = await supabase
-        .from('resources')
-        .select('id,title,code')
-        .eq('published', true)
-        .order('title');
-      const container = document.getElementById('resources');
-      container.innerHTML = data.length
-        ? data.map(r => `<div class="activity"><h3>${r.title}</h3>${r.code}</div>`).join('')
-        : '<p>No resources published yet.</p>';
-    }
+      // Load published resources
+      async function loadResources() {
+        const { data } = await supabase
+          .from('resources').select('title,code').eq('published', true).order('title');
+        const container = document.getElementById('resources');
+        container.innerHTML = data.length
+          ? data.map(r => `<div class="activity"><h3>${r.title}</h3>${r.code}</div>`).join('')
+          : '<p>No resources published yet.</p>';
+      }
 
-    // 3. Render quizzes
-    async function loadQuizzes() {
-      const { data } = await supabase
-        .from('quizzes')
-        .select('*')
-        .order('id');
-      const container = document.getElementById('quizzes');
-      container.innerHTML = data.length
-        ? data.map((q,i) => {
-            const choices = JSON.parse(q.choices);
-            return `
-              <form class="quiz" data-id="${q.id}">
-                <h3>Q${i+1}. ${q.question}</h3>
-                ${choices.map((c,j)=>`<label><input type="radio" name="ans" value="${j}" required> ${c}</label>`).join('')}
-                <input type="text" name="student" placeholder="Your name" required>
-                <button type="submit">Submit</button>
-              </form>
-            `;
-          }).join('')
-        : '<p>No quizzes available.</p>';
+      // Load quizzes
+      async function loadQuizzes() {
+        const { data } = await supabase.from('quizzes').select('*').order('id');
+        const container = document.getElementById('quizzes');
+        if (!data.length) {
+          container.innerHTML = '<p>No quizzes available.</p>';
+          return;
+        }
+        container.innerHTML = data.map((q,i) => {
+          const choices = JSON.parse(q.choices);
+          return `
+            <form class="quiz" data-id="${q.id}">
+              <h3>Q${i+1}. ${q.question}</h3>
+              ${choices.map((c,j)=>`<label><input type="radio" name="ans" value="${j}" required> ${c}</label>`).join('')}
+              <input type="text" name="student" placeholder="Your name" required>
+              <button type="submit">Submit</button>
+            </form>
+          `;
+        }).join('');
 
-      // handle submissions
-      document.querySelectorAll('.quiz').forEach(form => {
-        form.addEventListener('submit', async e => {
-          e.preventDefault();
-          const id = form.dataset.id;
-          const fd = new FormData(form);
-          const idx = +fd.get('ans');
-          const name = fd.get('student').trim();
-          const { data: quiz } = await supabase
-            .from('quizzes')
-            .select('answer')
-            .eq('id', id)
-            .single();
-          const correct = idx === quiz.answer;
-          await supabase.from('submissions').insert([
-            { quiz_id:id, student:name, answer_idx:idx, correct }
-          ]);
-          alert(correct ? '✅ Correct!' : '❌ Incorrect');
-          form.reset();
+        document.querySelectorAll('.quiz').forEach(form => {
+          form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const id = form.dataset.id;
+            const fd = new FormData(form);
+            const idx = +fd.get('ans'), name = fd.get('student').trim();
+            const { data: quiz } = await supabase.from('quizzes').select('answer').eq('id', id).single();
+            const correct = idx === quiz.answer;
+            await supabase.from('submissions').insert([{ quiz_id:id, student:name, answer_idx:idx, correct }]);
+            alert(correct ? '✅ Correct!' : '❌ Incorrect');
+            form.reset();
+          });
         });
-      });
-    }
+      }
 
-    // 4. On load
-    loadResources();
-    loadQuizzes();
+      // Initial load
+      await loadResources();
+      await loadQuizzes();
+    });
   </script>
 </body>
 </html>
