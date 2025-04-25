@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Instructor Dashboard</title>
-  <!-- 1. Supabase UMD first -->
+  <!-- Supabase UMD first -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
     body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px; }
@@ -42,16 +42,15 @@
     <div id="subs"></div>
   </section>
 
-  <!-- 2. Our logic -->
   <script>
     window.addEventListener('DOMContentLoaded', async () => {
       const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
-      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Render resources
+      // Load/manage resources
       async function loadResources() {
-        const { data } = await supabase.from('resources').select('*').order('title');
+        const { data } = await supa.from('resources').select('*').order('title');
         document.getElementById('resTable').innerHTML = data.map(r=>`
           <tr>
             <td>${r.title}</td>
@@ -67,7 +66,7 @@
 
       // Toggle publish state
       window.toggleRes = async (id, pub) => {
-        await supabase.from('resources').update({ published:pub }).eq('id',id);
+        await supa.from('resources').update({ published:pub }).eq('id',id);
         loadResources();
       };
 
@@ -75,18 +74,18 @@
       document.getElementById('quizForm').onsubmit = async e => {
         e.preventDefault();
         const f = new FormData(e.target);
-        await supabase.from('quizzes').insert([{
-          id: f.get('id'),
+        await supa.from('quizzes').insert([{
+          id:       f.get('id'),
           question: f.get('question'),
-          choices: f.get('choices'),
-          answer: +f.get('answer')
+          choices:  f.get('choices'),
+          answer:   +f.get('answer')
         }]);
         alert('Quiz added');
       };
 
       // Load submissions
       async function loadSubs() {
-        const { data } = await supabase
+        const { data } = await supa
           .from('submissions')
           .select('quiz_id,student,answer_idx,correct,time')
           .order('time',{ ascending:false });
