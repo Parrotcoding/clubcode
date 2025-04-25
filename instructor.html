@@ -5,112 +5,135 @@
   <title>Instructor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:900px }
+    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:1000px }
     h1,h2 { color:#0c4a7f }
-    form, .resource-item { border:1px solid #ddd; padding:1rem; margin-bottom:1rem }
-    .resource-item { display:flex; justify-content:space-between; align-items:center }
-    .resource-item span { cursor:pointer; flex:1 }
-    button { margin-left:.5rem; }
-    input { width:100%; margin:.4rem 0; padding:.4rem }
-    iframe { width:100%; height:400px; border:1px solid #ccc; margin-top:1rem }
+    section { margin-bottom:2rem }
+    .item-list, .quiz-list { border:1px solid #ddd; padding:1rem }
+    .item, .quiz-item { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #eee }
+    .item:last-child, .quiz-item:last-child { border-bottom:none }
+    .controls button { margin-left:.3rem }
+    form { border:1px solid #ddd; padding:1rem }
+    .question-block { margin-bottom:1rem; padding:1rem; border:1px solid #ccc }
+    .choice { display:flex; align-items:center; margin:.4rem 0 }
+    .choice input[type="checkbox"]{ margin-right:.5rem }
+    input, textarea, button { width:100%; margin:.4rem 0; padding:.4rem }
+    button.add { width:auto }
+    iframe { width:100%; height:300px; border:1px solid #ccc; margin-top:1rem }
   </style>
 </head>
 <body>
   <h1>Instructor Dashboard</h1>
 
+  <!-- Links Section -->
   <section>
-    <h2>Add Resource Link</h2>
-    <form id="addResourceForm">
-      <input name="id" placeholder="Resource ID (e.g. res11)" required>
+    <h2>Links</h2>
+    <form id="addLinkForm">
+      <input name="id" placeholder="Link ID" required>
       <input name="title" placeholder="Title" required>
       <input name="url" placeholder="https://example.com" required>
-      <button type="submit">Add Resource</button>
+      <button type="submit">Add Link</button>
+    </form>
+    <div class="item-list" id="linkList">Loading…</div>
+    <iframe id="linkPreview" src="about:blank"></iframe>
+  </section>
+
+  <!-- Quizzes Section -->
+  <section>
+    <h2>Quizzes</h2>
+    <div class="quiz-list" id="quizList">Loading…</div>
+    <form id="addQuizForm">
+      <input name="id" placeholder="Quiz ID" required>
+      <input name="title" placeholder="Quiz Title" required>
+      <div id="questionsContainer"></div>
+      <button type="button" id="addQuestion">Add Question</button>
+      <button type="submit">Save Quiz</button>
     </form>
   </section>
 
-  <section>
-    <h2>Manage Resources</h2>
-    <div id="resourceList">Loading…</div>
-  </section>
-
-  <section>
-    <h2>Preview Resource</h2>
-    <iframe id="previewFrame" src="about:blank"></iframe>
-  </section>
-
   <script>
-    window.addEventListener('DOMContentLoaded', async () => {
-      const SUPABASE_URL = 'https://kqprtnxmostvagtildsn.supabase.co';
-      const SUPABASE_KEY = 'YOUR_ANON_KEY';
-      const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    document.addEventListener('DOMContentLoaded',async()=>{
+      const URL='https://kqprtnxmostvagtildsn.supabase.co';
+      const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
+      const supa=supabase.createClient(URL,KEY);
 
-      const listDiv = document.getElementById('resourceList');
-      const preview = document.getElementById('previewFrame');
-
-      // Load and render resources
-      async function loadResources() {
-        const { data = [] } = await supa
-          .from('resources')
-          .select('*')
-          .order('title', { ascending: true });
-        listDiv.innerHTML = data.map(r => `
-          <div class="resource-item" data-url="${r.url}">
-            <span>${r.title}</span>
-            <div>
-              <button onclick="togglePub('${r.id}',${!r.published})">
-                ${r.published ? 'Unpublish' : 'Publish'}
-              </button>
-              <button onclick="deleteRes('${r.id}')">Delete</button>
-              <button class="open-btn">Open ↗</button>
+      // --- Links ---
+      async function loadLinks(){
+        const {data=[]}=await supa.from('links').select('*').order('title');
+        const list=document.getElementById('linkList');
+        list.innerHTML=data.map(l=>`
+          <div class="item" data-url="${l.url}">
+            <span>${l.title}</span>
+            <div class="controls">
+              <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpublish':'Publish'}</button>
+              <button onclick="deleteLink('${l.id}')">Delete</button>
+              <button onclick="openLink(this)">Open</button>
             </div>
           </div>
-        `).join('') || '<p>No resources.</p>';
-
-        // Attach click handlers
-        document.querySelectorAll('.resource-item span').forEach(el => {
-          el.onclick = () => {
-            const url = el.parentElement.dataset.url;
-            preview.src = url;
-          };
-        });
-        document.querySelectorAll('.open-btn').forEach(btn => {
-          btn.onclick = e => {
-            e.stopPropagation();
-            const url = btn.parentElement.parentElement.dataset.url;
-            window.open(url, '_blank');
-          };
+        `).join('')||'<p>No links.</p>';
+        list.querySelectorAll('.item span').forEach(span=>{
+          span.onclick=()=>document.getElementById('linkPreview').src=span.parentElement.dataset.url;
         });
       }
-
-      // Add resource
-      document.getElementById('addResourceForm').onsubmit = async e => {
+      window.toggleLink=async(id,p)=>{await supa.from('links').update({published:p}).eq('id',id);loadLinks()};
+      window.deleteLink=async id=>{await supa.from('links').delete().eq('id',id);loadLinks()};
+      window.openLink=btn=>window.open(btn.closest('.item').dataset.url,'_blank');
+      document.getElementById('addLinkForm').onsubmit=async e=>{
         e.preventDefault();
-        const f = new FormData(e.target);
-        await supa.from('resources').insert([{
-          id: f.get('id'),
-          title: f.get('title'),
-          url: f.get('url'),
-          published: false
-        }]);
-        e.target.reset();
-        loadResources();
+        const f=new FormData(e.target);
+        await supa.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
+        e.target.reset();loadLinks();
       };
+      loadLinks();
 
-      // Toggle publish
-      window.togglePub = async (id, pub) => {
-        await supa.from('resources').update({ published: pub }).eq('id', id);
-        loadResources();
+      // --- Quizzes ---
+      async function loadQuizzes(){
+        const {data=[]}=await supa.from('quizzes').select('*').order('id');
+        const list=document.getElementById('quizList');
+        list.innerHTML=data.map(q=>`
+          <div class="quiz-item">
+            <span>${q.id} — ${q.title}</span>
+            <div class="controls">
+              <button onclick="toggleQuiz('${q.id}',${!q.published})">${q.published?'Unpublish':'Publish'}</button>
+              <button onclick="deleteQuiz('${q.id}')">Delete</button>
+            </div>
+          </div>
+        `).join('')||'<p>No quizzes.</p>';
+      }
+      window.toggleQuiz=async(id,p)=>{await supa.from('quizzes').update({published:p}).eq('id',id);loadQuizzes()};
+      window.deleteQuiz=async id=>{await supa.from('quizzes').delete().eq('id',id);loadQuizzes()};
+      loadQuizzes();
+
+      // Quiz builder
+      const qForm=document.getElementById('addQuizForm');
+      const qCont=document.getElementById('questionsContainer');
+      document.getElementById('addQuestion').onclick=()=>{
+        const idx=qCont.children.length;
+        const blk=document.createElement('div');
+        blk.className='question-block';
+        blk.innerHTML=`
+          <input name="prompt${idx}" placeholder="Prompt" required>
+          ${[0,1,2,3].map(j=>`
+            <div class="choice">
+              <input type="checkbox" name="correct${idx}" value="${j}">
+              <input name="choice${idx}${j}" placeholder="Choice ${j+1}" required>
+            </div>
+          `).join('')}
+        `;
+        qCont.appendChild(blk);
       };
-
-      // Delete resource
-      window.deleteRes = async id => {
-        if (!confirm('Delete this resource?')) return;
-        await supa.from('resources').delete().eq('id', id);
-        loadResources();
+      document.getElementById('addQuestion').click();
+      qForm.onsubmit=async e=>{
+        e.preventDefault();
+        const f=new FormData(qForm);
+        const id=f.get('id'), title=f.get('title');
+        const questions=Array.from(qCont.children).map((blk,i)=>({
+          prompt:f.get(`prompt${i}`),
+          choices:[0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
+          correctIdx:Number(f.get(`correct${i}`))||0
+        }));
+        await supa.from('quizzes').upsert([{id,title,questions,published:false}]);
+        qForm.reset();qCont.innerHTML='';document.getElementById('addQuestion').click();loadQuizzes();
       };
-
-      // Initial load
-      loadResources();
     });
   </script>
 </body>
