@@ -7,19 +7,18 @@
   <style>
     body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px }
     h1,h2 { color:#0c4a7f }
-    .link-list { margin-bottom:2rem }
-    .link-item { padding:.5rem 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center }
+    .link-list, .quiz-list { margin-bottom:2rem }
+    .link-item { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid #eee }
     .link-item:last-child { border-bottom:none }
-    .link-item span { color:#0366d6 }
-    .quiz-container { border:1px solid #ddd; padding:1rem }
+    .quiz-container { border:1px solid #ddd; padding:1rem; margin-bottom:2rem }
     .progress { display:flex; gap:4px; margin-bottom:1rem }
     .pill { flex:1; height:12px; background:#e2e8f0; border-radius:6px }
     .pill.correct { background:#4caf50 }
     .pill.incorrect { background:#555 }
     .question { margin-bottom:1rem }
     label { display:block; margin:.4rem 0 }
-    input[type="text"] { width:100%; padding:.4rem }
-    button { margin-top:.5rem; padding:.5rem 1rem }
+    input[type="text"] { width:100%; padding:.4rem; margin-bottom:.5rem }
+    button { padding:.5rem 1rem }
   </style>
 </head>
 <body>
@@ -32,21 +31,19 @@
 
   <section>
     <h2>Quizzes</h2>
-    <div id="quizzes">Loading quizzes…</div>
+    <div id="quizzes" class="quiz-list">Loading quizzes…</div>
   </section>
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      const URL = 'https://kqprtnxmostvagtildsn.supabase.co';
-      const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
-      const supa = supabase.createClient(URL, KEY);
+      const SUPA = supabase.createClient(
+        'https://kqprtnxmostvagtildsn.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
+      );
 
-      // Links
-      const { data: links = [] } = await supa
-        .from('links')
-        .select('title,url')
-        .eq('published', true)
-        .order('title');
+      // LINKS
+      const { data: links = [] } = await SUPA
+        .from('links').select('title,url').eq('published', true).order('title');
       const linksDiv = document.getElementById('links');
       linksDiv.innerHTML = links.map(l => `
         <div class="link-item">
@@ -55,12 +52,9 @@
         </div>
       `).join('') || '<p>No links published.</p>';
 
-      // Quizzes
-      const { data: quizzes = [] } = await supa
-        .from('quizzes')
-        .select('*')
-        .eq('published', true)
-        .order('id');
+      // QUIZZES
+      const { data: quizzes = [] } = await SUPA
+        .from('quizzes').select('*').eq('published', true).order('id');
       const quizDiv = document.getElementById('quizzes');
       quizDiv.innerHTML = '';
       if (!quizzes.length) {
@@ -72,39 +66,46 @@
         const container = document.createElement('div');
         container.className = 'quiz-container';
 
+        // Progress pills
         const prog = document.createElement('div');
         prog.className = 'progress';
-        q.questions.forEach(_ => prog.appendChild(Object.assign(document.createElement('div'), { className: 'pill' })));
+        q.questions.forEach(() => {
+          const pill = document.createElement('div');
+          pill.className = 'pill';
+          prog.appendChild(pill);
+        });
         container.appendChild(prog);
 
+        // Questions
         q.questions.forEach((ques, idx) => {
           const block = document.createElement('div');
           block.className = 'question';
           block.innerHTML = `<p><strong>${idx+1}. ${ques.prompt}</strong></p>` +
             ques.choices.map((c,j)=>`
-              <label><input type="radio" name="ans${qi}-${idx}" value="${j}" required> ${c}</label>
+              <label>
+                <input type="radio" name="ans${qi}-${idx}" value="${j}" required> ${c}
+              </label>
             `).join('');
           container.appendChild(block);
         });
 
+        // Name + Submit
         const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.placeholder = 'Your name';
-        nameInput.required = true;
+        nameInput.type='text'; nameInput.placeholder='Your name'; nameInput.required=true;
         container.appendChild(nameInput);
 
         const submit = document.createElement('button');
         submit.textContent = 'Submit Quiz';
         container.appendChild(submit);
 
-        submit.onclick = async () => {
+        submit.addEventListener('click', async () => {
           const student = nameInput.value.trim();
           q.questions.forEach((ques, idx) => {
             const choice = +document.querySelector(`input[name="ans${qi}-${idx}"]:checked`).value;
-            prog.children[idx].classList.add(choice === ques.correctIdx ? 'correct' : 'incorrect');
+            prog.children[idx].classList.add(choice===ques.correctIdx?'correct':'incorrect');
           });
-          await supa.from('submissions').insert([{ quiz_id: q.id, student, time: new Date().toISOString() }]);
-        };
+          await SUPA.from('submissions').insert([{ quiz_id:q.id, student, time:new Date().toISOString() }]);
+        });
 
         quizDiv.appendChild(container);
       });
