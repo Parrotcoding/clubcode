@@ -7,10 +7,10 @@
   <style>
     body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px }
     h1,h2 { color:#0c4a7f }
-    .link-list, .quiz-container { margin-bottom:2rem }
-    .link-item { padding:.5rem 0; border-bottom:1px solid #eee; }
-    .link-item a { color:#0366d6; text-decoration:none }
-    .quiz-container { border:1px solid #ddd; padding:1rem }
+    iframe { width:100%; height:200px; border:1px solid #ccc; margin-bottom:1rem }
+    .link-list .link-item { padding:.5rem 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center }
+    .link-item span { cursor:pointer; color:#0366d6 }
+    .quiz-container { border:1px solid #ddd; padding:1rem; margin-top:2rem }
     .progress { display:flex; gap:4px; margin-bottom:1rem }
     .pill { flex:1; height:12px; background:#e2e8f0; border-radius:6px }
     .pill.correct { background:#4caf50 }
@@ -26,6 +26,7 @@
 
   <section>
     <h2>Links</h2>
+    <iframe id="linkPreview" src="about:blank"></iframe>
     <div id="links" class="link-list">Loading links…</div>
   </section>
 
@@ -35,68 +36,87 @@
   </section>
 
   <script>
-    window.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       const URL = 'https://kqprtnxmostvagtildsn.supabase.co';
       const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc';
       const supa = supabase.createClient(URL, KEY);
 
-      // Load published links
-      const { data: links = [] } = await supa
-        .from('links')
+      // Load Links
+      const { data: links = [] } = await supa.from('links')
         .select('title,url')
         .eq('published', true)
         .order('title');
       const linksDiv = document.getElementById('links');
-      linksDiv.innerHTML = links.map(l=>`
-        <div class="link-item">
-          <a href="${l.url}" target="_blank" rel="noopener">${l.title}</a>
+      linksDiv.innerHTML = links.map(l => `
+        <div class="link-item" data-url="${l.url}">
+          <span>${l.title}</span>
+          <button class="open-btn">Open ↗</button>
         </div>
-      `).join('') || '<p>No links published yet.</p>';
+      `).join('') || '<p>No links published.</p>';
 
-      // Load quizzes
-      const { data: quizzes = [] } = await supa
-        .from('quizzes')
+      // Wiring links
+      document.querySelectorAll('.link-item').forEach(item => {
+        item.querySelector('span').onclick = () => {
+          document.getElementById('linkPreview').src = item.dataset.url;
+        };
+        item.querySelector('.open-btn').onclick = e => {
+          e.stopPropagation();
+          window.open(item.dataset.url, '_blank');
+        };
+      });
+
+      // Load Quizzes
+      const { data: quizzes = [] } = await supa.from('quizzes')
         .select('*')
         .eq('published', true)
         .order('id');
       const quizDiv = document.getElementById('quizzes');
+      quizDiv.innerHTML = '';
       if (!quizzes.length) {
         quizDiv.textContent = 'No quizzes published.';
         return;
       }
 
-      quizzes.forEach((q,qi)=>{
+      quizzes.forEach((q, qi) => {
         const container = document.createElement('div');
         container.className = 'quiz-container';
-        const progress = document.createElement('div');
-        progress.className = 'progress';
-        q.questions.forEach(_=>progress.appendChild(Object.assign(document.createElement('div'),{className:'pill'})));
-        container.appendChild(progress);
 
-        q.questions.forEach((ques,idx)=>{
+        // Progress
+        const prog = document.createElement('div');
+        prog.className = 'progress';
+        q.questions.forEach(_ => prog.appendChild(Object.assign(document.createElement('div'), { className: 'pill' })));
+        container.appendChild(prog);
+
+        // Questions
+        q.questions.forEach((ques, idx) => {
           const block = document.createElement('div');
           block.className = 'question';
-          block.innerHTML = `<p><strong>${idx+1}. ${ques.prompt}</strong></p>`+
-            ques.choices.map((c,j)=>`<label><input type="radio" name="ans${qi}-${idx}" value="${j}" required> ${c}</label>`).join('');
+          block.innerHTML = `<p><strong>${idx+1}. ${ques.prompt}</strong></p>` +
+            ques.choices.map((c,j)=>`
+              <label><input type="radio" name="ans${qi}-${idx}" value="${j}" required> ${c}</label>
+            `).join('');
           container.appendChild(block);
         });
 
+        // Name & Submit
         const nameInput = document.createElement('input');
-        nameInput.type='text'; nameInput.placeholder='Your name'; nameInput.required=true;
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Your name';
+        nameInput.required = true;
         container.appendChild(nameInput);
+
         const submit = document.createElement('button');
-        submit.textContent='Submit Quiz';
+        submit.textContent = 'Submit Quiz';
         container.appendChild(submit);
 
-        submit.addEventListener('click',async()=>{
-          const student=nameInput.value.trim();
-          q.questions.forEach((ques,idx)=>{
-            const choice=+document.querySelector(`input[name="ans${qi}-${idx}"]:checked`).value;
-            const pill=progress.children[idx];
-            pill.classList.add(choice===ques.correctIdx?'correct':'incorrect');
+        submit.onclick = async () => {
+          const student = nameInput.value.trim();
+          q.questions.forEach((ques, idx) => {
+            const choice = +document.querySelector(`input[name="ans${qi}-${idx}"]:checked`).value;
+            prog.children[idx].classList.add(choice === ques.correctIdx ? 'correct' : 'incorrect');
           });
-          await supa.from('submissions').insert([{quiz_id:q.id,student,time:new Date().toISOString()}]);
-        });
+          await supa.from('submissions').insert([{ quiz_id: q.id, student, time: new Date().toISOString() }]);
+        };
 
         quizDiv.appendChild(container);
       });
