@@ -27,10 +27,7 @@
     input, select {
       padding:.5rem 1rem; margin:.5rem 0; border:1px solid #d1d5db; border-radius:var(--radius);
     }
-    input[type="text"] {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
+    input[type="text"] { flex:1 1 auto; min-width:0; }
     button {
       padding:.5rem 1rem; background:var(--primary); color:#fff;
       border-radius:var(--radius); cursor:pointer; transition:background .2s;
@@ -169,7 +166,7 @@
       quizForm.title.value        = q.title;
       quizForm.grading_mode.value = q.grading_mode;
       questions.innerHTML = '';
-      q.questions.forEach((ques,i) => {
+      q.questions.forEach((ques,i)=>{
         questions.appendChild(renderQuestion(
           i,
           ques.prompt,
