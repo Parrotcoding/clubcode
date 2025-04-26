@@ -44,7 +44,6 @@
     }
     button:hover { background:#4338ca; }
 
-    /* Modal */
     .modal-backdrop {
       position:fixed; top:0; left:0; width:100%; height:100%;
       background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center;
@@ -55,19 +54,15 @@
     }
     .close-btn { position:absolute; top:1rem; right:1rem; cursor:pointer; font-size:1.2rem; }
 
-    /* Progress */
     .progress { display:flex; gap:4px; margin-bottom:1rem; }
     .pill { flex:1; height:12px; background:#e5e7eb; border-radius:var(--radius); }
     .pill.correct { background:#10b981; }
     .pill.incorrect { background:#ef4444; }
 
-    /* Question UI */
     .question { margin-bottom:1rem; }
     .options { display:flex; flex-direction:column; gap:.5rem; }
+    .options.single label,
     .options.multi label {
-      display:flex; align-items:center; gap:.5rem;
-    }
-    .options.single label {
       display:flex; align-items:center; gap:.5rem;
     }
     .feedback { margin-top:.5rem; font-weight:500; }
@@ -99,26 +94,28 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const supa = supabase.createClient(
       'https://kqprtnxmostvagtildsn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh...Ep7NOUc'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
     );
 
     // Load Links
-    const { data: links = [] } = await supa
+    let linksResult = await supa
       .from('links')
       .select('title,url')
       .eq('published', true)
       .order('title');
+    const links = linksResult.data || [];
     const linksDiv = document.getElementById('links');
     linksDiv.innerHTML = links.length
       ? links.map(l=>`<div class="item"><span>${l.title}</span><button onclick="window.open('${l.url}','_blank')">Open ↗</button></div>`).join('')
       : '<p>No links published.</p>';
 
     // Load Quizzes
-    const { data: quizzes = [] } = await supa
+    let quizzesResult = await supa
       .from('quizzes')
       .select('id,title,grading_mode')
       .eq('published', true)
       .order('id');
+    const quizzes = quizzesResult.data || [];
     const quizDiv = document.getElementById('quizList');
     quizDiv.innerHTML = quizzes.length
       ? quizzes.map(q=>`<div class="item"><span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">${q.title}</span></div>`).join('')
@@ -127,15 +124,13 @@
       el.onclick = () => runQuiz(el.dataset.id, el.dataset.mode)
     );
 
-    // Quiz flow state
     async function runQuiz(id, mode) {
       const { data:[quiz] } = await supa.from('quizzes').select('*').eq('id',id);
-      let idx=0, answers=[], pills=[];
-      const container = document.getElementById('quizContainer');
+      let idx = 0, answers = [], pills = [], studentName;
       const modal = document.getElementById('modalBackdrop');
+      const container = document.getElementById('quizContainer');
       modal.style.display = 'flex';
 
-      // Name entry
       container.innerHTML = `
         <h3>${quiz.title}</h3>
         <label>Your name:</label>
@@ -144,24 +139,25 @@
       `;
       container.querySelector('#startQuiz').onclick = () => {
         const n = container.querySelector('#studentName').value.trim();
-        if(!n){ alert('Please enter your name.'); return; }
+        if (!n) { alert('Please enter your name.'); return; }
+        studentName = n;
         answers = Array(quiz.questions.length).fill(null);
         pills   = Array(quiz.questions.length).fill(null);
-        studentName = n;
         renderPage();
       };
 
       function renderPage() {
         const q = quiz.questions[idx];
         const isMulti = q.multi;
-        const selHtml = q.choices.map((c,j)=>`
+        const opts = q.choices.map((c,j) => `
           <label>
-            <input type="${isMulti?'checkbox':'radio'}" name="choice" value="${j}"
-              ${ answers[idx]!==null && (
-                  isMulti
-                    ? answers[idx].includes(j)
-                    : answers[idx]===j
-                ) ? 'checked':'' }>
+            <input type="${isMulti?'checkbox':'radio'}"
+                   name="choice" value="${j}"
+                   ${ answers[idx]!==null && (
+                       isMulti
+                         ? answers[idx].includes(j)
+                         : answers[idx]===j
+                     ) ? 'checked':'' }>
             ${c}
           </label>
         `).join('');
@@ -169,48 +165,40 @@
           <h3>${quiz.title}</h3>
           <div class="progress">${quiz.questions.map((_,i)=>`<div class="pill" id="pill${i}"></div>`).join('')}</div>
           <div class="question"><strong>Q${idx+1}. ${q.prompt}</strong></div>
-          <div class="options ${isMulti?'multi':'single'}">
-            ${selHtml}
-          </div>
+          <div class="options ${isMulti?'multi':'single'}">${opts}</div>
           <div style="margin-top:1rem;">
             ${idx>0?'<button id="back">Back</button>':''}
             <button id="next">${idx<quiz.questions.length-1?'Next':'Finish'}</button>
           </div>
           <div id="feedback" class="feedback"></div>
         `;
-
-        // Handlers
-        if(idx>0) container.querySelector('#back').onclick = ()=>{ idx--; renderPage(); };
+        if (idx>0) container.querySelector('#back').onclick = ()=>{ idx--; renderPage(); };
         container.querySelector('#next').onclick = () => {
-          // collect
-          if(isMulti) {
-            answers[idx] = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
-                              .map(cb=>+cb.value);
-            if(answers[idx].length===0){ alert('Select at least one.'); return; }
+          // collect answers
+          if (isMulti) {
+            const sel = Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb=>+cb.value);
+            if (!sel.length) { alert('Select at least one.'); return; }
+            answers[idx] = sel;
           } else {
             const sel = container.querySelector('input[type="radio"]:checked');
-            if(!sel){ alert('Select one option.'); return; }
+            if (!sel) { alert('Select an option.'); return; }
             answers[idx] = +sel.value;
           }
-          // grade this page
-          const correctSet = isMulti
-            ? new Set(q.correctIdxArray || [q.correctIdxSingle])
-            : null;
-          let ok = true;
-          if(isMulti) {
+          // grade this question
+          let ok;
+          if (isMulti) {
+            const correctSet = new Set(q.correctIdxArray || [q.correctIdxSingle]);
             const ansSet = new Set(answers[idx]);
-            if(ansSet.size !== correctSet.size) ok=false;
-            else for(let v of ansSet) if(!correctSet.has(v)) ok=false;
+            ok = ansSet.size === correctSet.size && [...ansSet].every(v=>correctSet.has(v));
           } else {
             ok = answers[idx] === q.correctIdxSingle;
           }
           pills[idx] = ok;
-          container.querySelector(`#pill${idx}`).classList.add(ok?'correct':'incorrect');
-          // feedback
-          container.querySelector('#feedback').textContent = ok?'✅ Correct':'❌ Incorrect';
-          container.querySelector('#feedback').className = 'feedback ' + (ok?'correct':'incorrect');
-
-          if(idx < quiz.questions.length-1) {
+          document.getElementById(`pill${idx}`).classList.add(ok?'correct':'incorrect');
+          const fb = container.querySelector('#feedback');
+          fb.textContent = ok?'✅ Correct':'❌ Incorrect';
+          fb.className = 'feedback ' + (ok?'correct':'incorrect');
+          if (idx < quiz.questions.length-1) {
             idx++; renderPage();
           } else {
             finishQuiz();
@@ -220,15 +208,12 @@
 
       async function finishQuiz() {
         modal.style.display = 'none';
-        const correctCount = pills.filter(x=>x).length;
-        const score = `${correctCount}/${quiz.questions.length}`;
+        const score = `${pills.filter(x=>x).length}/${quiz.questions.length}`;
         alert(`Your score: ${score}`);
-        await supa.from('submissions').insert([{
-          quiz_id:id, student:studentName, answers, score, time:new Date().toISOString()
-        }]);
+        await supa.from('submissions').insert([{ quiz_id:id, student:studentName, answers, score, time:new Date().toISOString() }]);
       }
 
-      document.getElementById('closeModal').onclick = ()=> modal.style.display='none';
+      document.getElementById('closeModal').onclick = ()=> modal.style.display = 'none';
     }
   });
   </script>
