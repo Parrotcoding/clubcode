@@ -17,57 +17,61 @@
       --radius: 9999px;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 2rem;
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg); color: var(--text);
-    }
-    h1 { font-family: 'Poppins', sans-serif; font-size: 2rem; margin-bottom: 1rem; }
-    section { margin-bottom: 2rem; }
+    body { margin:0; padding:2rem; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); }
+    h1 { font-family:'Poppins',sans-serif; font-size:2rem; margin-bottom:1rem; }
+    section { margin-bottom:2rem; }
     .list {
-      background: var(--card);
-      border-radius: 1rem;
-      padding: 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      background:var(--card); border-radius:1rem; padding:1rem;
+      box-shadow:0 2px 8px rgba(0,0,0,0.05);
     }
     .quiz-item, .link-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: .5rem 0; border-bottom: 1px solid #e5e7eb;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:.5rem 0; border-bottom:1px solid #e5e7eb;
     }
-    .quiz-item:last-child, .link-item:last-child { border-bottom: none; }
+    .quiz-item:last-child, .link-item:last-child { border-bottom:none; }
     input, select {
-      width: 100%; padding: .5rem 1rem; margin: .5rem 0;
-      border: 1px solid #d1d5db; border-radius: var(--radius);
+      width:100%; padding:.5rem 1rem; margin:.5rem 0;
+      border:1px solid #d1d5db; border-radius:var(--radius);
     }
     button {
-      padding: .5rem 1rem; background: var(--primary); color: #fff;
-      border-radius: var(--radius); cursor: pointer; transition: background .2s;
+      padding:.5rem 1rem; background:var(--primary); color:#fff;
+      border-radius:var(--radius); cursor:pointer; transition:background .2s;
     }
-    button:hover { background: #4338ca; }
-    .questions { list-style: none; padding: 0; margin: 1rem 0; }
+    button:hover { background:#4338ca; }
+    .questions { list-style:none; padding:0; margin:1rem 0; }
     .question-block {
-      background: #f3f4f6; padding: 1rem; border-radius: 1rem;
-      margin-bottom: 1rem; display: flex; gap: 1rem; align-items: start;
+      background:#f3f4f6; padding:1rem; border-radius:1rem;
+      margin-bottom:1rem; display:flex; gap:1rem; align-items:start;
     }
-    .delete-q { background: #ef4444; margin-left: auto; color: #fff; border: none; padding: .2rem .5rem; cursor: pointer; border-radius: var(--radius); }
-    .submission-dropdown { margin-bottom: 1rem; }
+    .delete-q {
+      background:#ef4444; margin-left:auto; color:#fff;
+      border:none; padding:.2rem .5rem; cursor:pointer;
+      border-radius:var(--radius);
+    }
+    .add-choice {
+      background: #10b981; margin-top:.5rem;
+      display:block; color:#fff; border:none;
+      padding:.3rem .6rem; border-radius:var(--radius);
+    }
+    .submission-dropdown { margin-bottom:1rem; }
     .submission-header {
-      background: #f3f4f6; padding: .75rem; border-radius: var(--radius); cursor: pointer;
+      background:#f3f4f6; padding:.75rem;
+      border-radius:var(--radius); cursor:pointer;
     }
-    .submission-list { display: none; padding: .75rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
-    th, td { border: 1px solid #e5e7eb; padding: .5rem; text-align: left; }
-    .delete-btn { background: none; color: #ef4444; cursor: pointer; border: none; }
+    .submission-list { display:none; padding:.75rem; }
+    table { width:100%; border-collapse:collapse; margin-top:.5rem; }
+    th, td { border:1px solid #e5e7eb; padding:.5rem; text-align:left; }
+    .delete-btn { background:none; color:#ef4444; cursor:pointer; border:none; }
     .inline-input {
-      padding: .5rem 1rem; margin-right: .5rem;
-      border: 1px solid #d1d5db; border-radius: var(--radius);
+      padding:.5rem 1rem; margin-right:.5rem;
+      border:1px solid #d1d5db; border-radius:var(--radius);
     }
   </style>
 </head>
 <body>
   <h1>Instructor Dashboard</h1>
 
-  <!-- Quizzes Management -->
+  <!-- Quizzes -->
   <section class="list">
     <h2>Quizzes</h2>
     <div id="quizList"></div>
@@ -92,7 +96,7 @@
     <div id="submissionsSection"></div>
   </section>
 
-  <!-- Links Management -->
+  <!-- Links -->
   <section class="list">
     <h2>Links</h2>
     <div id="linkList"></div>
@@ -108,7 +112,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const supa = supabase.createClient(
       'https://kqprtnxmostvagtildsn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'
     );
 
     const quizListEl       = document.getElementById('quizList');
@@ -124,35 +128,30 @@
       const { data: qs = [] } = await supa
         .from('quizzes')
         .select('id,title,grading_mode,published')
-        .order('id', { ascending: true });
-
-      quizListEl.innerHTML = qs
-        .map(q => `
-          <div class="quiz-item">
-            <span onclick="editQuiz('${q.id}')" style="cursor:pointer;">
-              ${q.id} — ${q.title}
-            </span>
-            <div>
-              <button onclick="toggleQuiz('${q.id}',${!q.published})">
-                ${q.published ? 'Unpublish' : 'Publish'}
-              </button>
-              <button onclick="deleteQuiz('${q.id}')">Delete</button>
-            </div>
+        .order('id');
+      quizListEl.innerHTML = qs.map(q => `
+        <div class="quiz-item">
+          <span onclick="editQuiz('${q.id}')" style="cursor:pointer;">
+            ${q.id} — ${q.title}
+          </span>
+          <div>
+            <button onclick="toggleQuiz('${q.id}',${!q.published})">
+              ${q.published ? 'Unpublish' : 'Publish'}
+            </button>
+            <button onclick="deleteQuiz('${q.id}')">Delete</button>
           </div>
-        `)
-        .join('') || '<p>No quizzes.</p>';
+        </div>
+      `).join('') || '<p>No quizzes.</p>';
     }
 
     window.toggleQuiz = async (id, pub) => {
       await supa.from('quizzes').update({ published: pub }).eq('id', id);
       loadQuizzes(); loadSubmissions();
     };
-
     window.deleteQuiz = async id => {
       await supa.from('quizzes').delete().eq('id', id);
       loadQuizzes(); loadSubmissions();
     };
-
     window.editQuiz = async id => {
       const { data: [q] = [] } = await supa.from('quizzes').select('*').eq('id', id);
       if (!q) return;
@@ -161,53 +160,65 @@
       quizForm.grading_mode.value = q.grading_mode;
       questions.innerHTML = '';
       q.questions.forEach((ques, i) => {
-        questions.appendChild(
-          renderQuestion(
-            i,
-            ques.prompt,
-            ques.choices,
-            ques.multi
-              ? [...Array(ques.choices.length).keys()].filter(j => ques.correctIdxSingle == j)
-              : [ques.correctIdxSingle]
-          )
-        );
+        questions.appendChild(renderQuestion(
+          i, ques.prompt, ques.choices,
+          ques.multi
+            ? Array.from(ques.choices.keys()).filter(j => ques.correctIdxSingle == j)
+            : [ques.correctIdxSingle]
+        ));
       });
     };
 
-    // Render a question block
+    // Render question with Add Choice
     let dragSrc = null;
-    function renderQuestion(idx, prompt = '', choices = ['',''], correct = [0]) {
+    function renderQuestion(idx, prompt='', choices=['',''], correct=[0]) {
       const li = document.createElement('li');
-      li.className   = 'question-block';
-      li.draggable   = true;
+      li.className = 'question-block';
+      li.draggable  = true;
       li.dataset.idx = idx;
 
-      li.innerHTML = `
-        <div style="flex:1;">
-          <input name="prompt${idx}" placeholder="Prompt" value="${prompt}" />
-          ${choices.map((c, j) => `
-            <div>
-              <input
-                type="checkbox"
-                name="correct${idx}"
-                value="${j}"
-                ${correct.includes(j) ? 'checked' : ''}
-              />
-              <input
-                name="choice${idx}${j}"
-                placeholder="Choice ${j+1}"
-                value="${c}"
-              />
+      // Container for prompt & choices
+      const container = document.createElement('div');
+      container.style.flex = '1';
+      container.innerHTML = `
+        <input name="prompt${idx}" placeholder="Prompt" value="${prompt}" />
+        <div id="choices-${idx}">
+          ${choices.map((c,j) => `
+            <div class="choice-row">
+              <input type="checkbox" name="correct${idx}" value="${j}"
+                ${correct.includes(j) ? 'checked' : ''} />
+              <input name="choice${idx}${j}" placeholder="Choice ${j+1}" value="${c}" />
             </div>
           `).join('')}
         </div>
-        <button class="delete-q">✖</button>
+        <button type="button" class="add-choice" data-idx="${idx}">+ Add Choice</button>
       `;
 
-      // Delete
-      li.querySelector('.delete-q').onclick = () => {
+      // Add Choice handler
+      container.querySelector('.add-choice').onclick = () => {
+        const idx = container.querySelector('.add-choice').dataset.idx;
+        const choicesDiv = container.querySelector(`#choices-${idx}`);
+        const newIdx = choicesDiv.children.length;
+        const row = document.createElement('div');
+        row.className = 'choice-row';
+        row.innerHTML = `
+          <input type="checkbox" name="correct${idx}" value="${newIdx}" />
+          <input name="choice${idx}${newIdx}" placeholder="Choice ${newIdx+1}" />
+        `;
+        choicesDiv.appendChild(row);
+        reorderQuestions();
+      };
+
+      // Delete question
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-q';
+      delBtn.textContent = '✖';
+      delBtn.onclick = () => {
         li.remove(); reorderQuestions();
       };
+
+      li.appendChild(container);
+      li.appendChild(delBtn);
 
       // Drag & drop
       li.addEventListener('dragstart', () => {
@@ -225,9 +236,8 @@
 
       return li;
     }
-
     function reorderQuestions() {
-      Array.from(questions.children).forEach((li, i) => {
+      Array.from(questions.children).forEach((li,i) => {
         li.dataset.idx = i;
         Array.from(li.querySelectorAll('input')).forEach(inp => {
           inp.name = inp.name.replace(/\d+/, i);
@@ -241,21 +251,20 @@
     };
     addQ.click();
 
-    // Save quiz form
+    // Save quiz
     quizForm.onsubmit = async e => {
       e.preventDefault();
       const f = new FormData(quizForm);
       const id    = f.get('id');
       const title = f.get('title');
       const mode  = f.get('grading_mode');
-
       const qArr = Array.from(questions.children).map(li => {
         const i       = li.dataset.idx;
         const prompt  = f.get(`prompt${i}`);
-        const choices = [0,1,2,3].map(j => f.get(`choice${i}${j}`));
-        const correct = [...li.querySelectorAll(`input[name="correct${i}"]:checked`)]
+        const choices = Array.from(li.querySelectorAll(`[name^="choice${i}"]`))
+          .map(inp => inp.value);
+        const correct = Array.from(li.querySelectorAll(`[name="correct${i}"]:checked`))
           .map(c => +c.value);
-
         return {
           prompt,
           choices,
@@ -265,59 +274,33 @@
         };
       });
 
-      await supa.from('quizzes').upsert([{
-        id,
-        title,
-        grading_mode: mode,
-        questions: qArr,
-        published: false
-      }]);
-
-      quizForm.reset();
-      questions.innerHTML = '';
-      addQ.click();
-      loadQuizzes();
-      loadSubmissions();
+      await supa.from('quizzes').upsert([{ id, title, grading_mode: mode, questions: qArr, published: false }]);
+      quizForm.reset(); questions.innerHTML = ''; addQ.click();
+      loadQuizzes(); loadSubmissions();
     };
 
     // Load submissions
     async function loadSubmissions() {
-      const { data: subs = [] } = await supa
-        .from('submissions')
-        .select('*')
-        .order('time', { ascending: false });
-
+      const { data: subs = [] } = await supa.from('submissions').select('*').order('time',{ ascending: false });
       if (!subs.length) {
-        subsEl.innerHTML = '<p>No submissions yet.</p>';
-        return;
+        subsEl.innerHTML = '<p>No submissions yet.</p>'; return;
       }
-
-      const grouped = subs.reduce((acc, s) => {
+      const grouped = subs.reduce((acc,s) => {
         (acc[s.quiz_id] = acc[s.quiz_id] || []).push(s);
         return acc;
       }, {});
-
-      subsEl.innerHTML = Object.entries(grouped).map(([qid, list]) => `
+      subsEl.innerHTML = Object.entries(grouped).map(([qid,list]) => `
         <div class="submission-dropdown">
-          <div class="submission-header" data-q="${qid}">
-            Quiz ${qid} (${list.length})
-          </div>
+          <div class="submission-header" data-q="${qid}">Quiz ${qid} (${list.length})</div>
           <div class="submission-list" id="subs-${qid}">
             <table>
-              <thead>
-                <tr>
-                  <th>Student</th><th>Score</th><th>Time</th><th>Action</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Student</th><th>Score</th><th>Time</th><th></th></tr></thead>
               <tbody>
-                ${list.map(r => `
+                ${list.map(r=>`
                   <tr>
-                    <td>${r.student}</td>
-                    <td>${r.score}</td>
+                    <td>${r.student}</td><td>${r.score}</td>
                     <td>${new Date(r.time).toLocaleString()}</td>
-                    <td>
-                      <button class="delete-btn" data-id="${r.id}">Delete</button>
-                    </td>
+                    <td><button class="delete-btn" data-id="${r.id}">Delete</button></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -325,14 +308,12 @@
           </div>
         </div>
       `).join('');
-
       document.querySelectorAll('.submission-header').forEach(h => {
         h.onclick = () => {
           const lst = document.getElementById(`subs-${h.dataset.q}`);
-          lst.style.display = lst.style.display === 'block' ? 'none' : 'block';
+          lst.style.display = lst.style.display==='block'?'none':'block';
         };
       });
-
       document.querySelectorAll('.delete-btn').forEach(b => {
         b.onclick = async () => {
           await supa.from('submissions').delete().eq('id', b.dataset.id);
@@ -343,34 +324,26 @@
 
     // Load links
     async function loadLinks() {
-      const { data: ls = [] } = await supa
-        .from('links')
-        .select('*')
-        .order('title');
-
+      const { data: ls = [] } = await supa.from('links').select('*').order('title');
       linkListEl.innerHTML = ls.map(l => `
         <div class="link-item">
           <input class="inline-input" data-id="${l.id}" data-field="title"  value="${l.title}" />
           <input class="inline-input" data-id="${l.id}" data-field="url"    value="${l.url}" />
           <div>
             <button onclick="toggleLink('${l.id}',${!l.published})">
-              ${l.published ? 'Unpublish' : 'Publish'}
+              ${l.published?'Unpublish':'Publish'}
             </button>
             <button onclick="deleteLink('${l.id}')">Delete</button>
           </div>
         </div>
       `).join('') || '<p>No links.</p>';
-
       document.querySelectorAll('.inline-input').forEach(inp => {
         inp.onblur = async () => {
-          await supa.from('links')
-            .update({ [inp.dataset.field]: inp.value })
-            .eq('id', inp.dataset.id);
+          await supa.from('links').update({ [inp.dataset.field]: inp.value }).eq('id', inp.dataset.id);
         };
       });
     }
-
-    window.toggleLink = async (id, pub) => {
+    window.toggleLink = async (id,pub) => {
       await supa.from('links').update({ published: pub }).eq('id', id);
       loadLinks();
     };
@@ -382,20 +355,12 @@
     linkForm.onsubmit = async e => {
       e.preventDefault();
       const f = new FormData(linkForm);
-      await supa.from('links').insert([{
-        id:    f.get('id'),
-        title: f.get('title'),
-        url:   f.get('url'),
-        published: false
-      }]);
-      linkForm.reset();
-      loadLinks();
+      await supa.from('links').insert([{ id: f.get('id'), title: f.get('title'), url: f.get('url'), published: false }]);
+      linkForm.reset(); loadLinks();
     };
 
     // Initial load
-    loadQuizzes();
-    loadSubmissions();
-    loadLinks();
+    loadQuizzes(); loadSubmissions(); loadLinks();
   });
   </script>
 </body>
