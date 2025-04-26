@@ -9,7 +9,7 @@
     rel="stylesheet"
   />
   <style>
-    :root{--primary:#4f46e5;--bg:#f9fafb;--card:#fff;--text:#111827;--radius:9999px;}
+    :root {--primary:#4f46e5;--bg:#f9fafb;--card:#fff;--text:#111827;--radius:9999px;}
     *{box-sizing:border-box;}
     body{margin:0;padding:2rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);}
     h1{font-family:'Poppins',sans-serif;font-size:2rem;margin-bottom:1.5rem;}
@@ -18,7 +18,7 @@
     .item{display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid #e5e7eb;}
     .item:last-child{border-bottom:none;}
     .quiz-link{color:var(--primary);text-decoration:underline;cursor:pointer;}
-    button,input,select{font-family:inherit;font-size:1rem;border:none;outline:none;border-radius:var(--radius);}
+    input,select,button{font-family:inherit;font-size:1rem;border:none;outline:none;border-radius:var(--radius);}
     input,select{width:100%;padding:.5rem 1rem;margin:.5rem 0;border:1px solid #d1d5db;}
     button{padding:.5rem 1rem;background:var(--primary);color:#fff;cursor:pointer;transition:background .2s;}
     button:hover{background:#4338ca;}
@@ -40,10 +40,12 @@
 </head>
 <body>
   <h1>HTML Fundamentals</h1>
+
   <section>
     <h2>Links</h2>
     <div id="links" class="list">Loading…</div>
   </section>
+
   <section>
     <h2>Quizzes</h2>
     <div id="quizList" class="list">Loading…</div>
@@ -57,94 +59,130 @@
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded',async()=>{
-    const supa=supabase.createClient(
+  document.addEventListener('DOMContentLoaded', async () => {
+    const supa = supabase.createClient(
       'https://kqprtnxmostvagtildsn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...Ep7NOUc'
+      // ──────────── YOUR ANON KEY ────────────
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
     );
 
-    // Load Links
-    const { data: links = [] } = await supa
-      .from('links').select('title,url')
-      .eq('published', true).order('title');
+    // --- LINKS ---
+    const { data: links, error: linkErr } = await supa
+      .from('links')
+      .select('title,url')
+      .eq('published', true)
+      .order('title', { ascending: true });
+
     const linksDiv = document.getElementById('links');
-    linksDiv.innerHTML = links.length
-      ? links.map(l=>`<div class="item">
+    if (!links || linkErr) {
+      console.error('Links error', linkErr);
+      linksDiv.innerHTML = '<p>Unable to load links.</p>';
+    } else if (!links.length) {
+      linksDiv.innerHTML = '<p>No links published.</p>';
+    } else {
+      linksDiv.innerHTML = links.map(l => `
+        <div class="item">
           <span>${l.title}</span>
           <button onclick="window.open('${l.url}','_blank')">Open ↗</button>
-        </div>`).join('')
-      : '<p>No links.</p>';
+        </div>
+      `).join('');
+    }
 
-    // Load Quizzes
-    const { data: quizzes = [] } = await supa
-      .from('quizzes').select('id,title,grading_mode')
-      .eq('published', true).order('id');
+    // --- QUIZZES ---
+    const { data: quizzes, error: quizErr } = await supa
+      .from('quizzes')
+      .select('id,title,grading_mode')
+      .eq('published', true)
+      .order('id', { ascending: true });
+
     const quizDiv = document.getElementById('quizList');
-    quizDiv.innerHTML = quizzes.length
-      ? quizzes.map(q=>`<div class="item">
-          <span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">
-            ${q.title}
-          </span>
-        </div>`).join('')
-      : '<p>No quizzes.</p>';
-    quizDiv.querySelectorAll('.quiz-link').forEach(el=>
-      el.onclick = () => runQuiz(el.dataset.id, el.dataset.mode)
-    );
+    if (!quizzes || quizErr) {
+      console.error('Quizzes error', quizErr);
+      quizDiv.innerHTML = '<p>Unable to load quizzes.</p>';
+      return;
+    }
+    if (!quizzes.length) {
+      quizDiv.innerHTML = '<p>No quizzes available.</p>';
+      return;
+    }
+    quizDiv.innerHTML = quizzes.map(q => `
+      <div class="item">
+        <span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">
+          ${q.title}
+        </span>
+      </div>
+    `).join('');
+    quizDiv.querySelectorAll('.quiz-link').forEach(el => {
+      el.onclick = () => runQuiz(el.dataset.id, el.dataset.mode);
+    });
 
+    // --- QUIZ RUNNER ---
     async function runQuiz(id, mode) {
-      const { data: [quiz] = [] } = await supa.from('quizzes').select('*').eq('id', id);
+      const { data: [quiz] } = await supa
+        .from('quizzes')
+        .select('*')
+        .eq('id', id);
+
       let idx = 0, answers = [], pills = [], studentName;
       const modal = document.getElementById('modalBackdrop');
       const container = document.getElementById('quizContainer');
       modal.style.display = 'flex';
 
+      // Collect name
       container.innerHTML = `
         <h3>${quiz.title}</h3>
         <label>Your name:</label>
-        <input id="studentName" placeholder="Enter name"/>
-        <button id="start">Start</button>
+        <input id="studentName" placeholder="Enter your name" />
+        <button id="startQuiz">Start Quiz</button>
       `;
-      container.querySelector('#start').onclick = () => {
+      container.querySelector('#startQuiz').onclick = () => {
         const n = container.querySelector('#studentName').value.trim();
-        if (!n) { alert('Enter your name'); return; }
+        if (!n) { alert('Please enter your name.'); return; }
         studentName = n;
         answers = Array(quiz.questions.length).fill(null);
         pills   = Array(quiz.questions.length).fill(null);
-        render();
+        renderPage();
       };
 
       function gradeQuestion(q, ans) {
         if (q.multi) {
           const correct = q.correctIdxArray || [q.correctIdxSingle];
-          const cset = new Set(correct), aset = new Set(ans);
+          const cset = new Set(correct);
+          const aset = new Set(ans);
           if (aset.size !== cset.size) return false;
           return [...aset].every(v => cset.has(v));
         }
         return ans === q.correctIdxSingle;
       }
 
-      function render() {
-        const q = quiz.questions[idx], isMulti = q.multi;
-        const opts = q.choices.map((c,j)=>`
+      function renderPage() {
+        const q = quiz.questions[idx];
+        const isMulti = q.multi;
+        const opts = q.choices.map((c, j) => `
           <label>
-            <input type="${isMulti?'checkbox':'radio'}"
-                   name="choice" value="${j}"
-                   ${answers[idx] !== null && (
-                     isMulti
-                       ? answers[idx].includes(j)
-                       : answers[idx]===j
-                   ) ? 'checked':''}>
-            ${c}
+            <input
+              type="${isMulti?'checkbox':'radio'}"
+              name="choice"
+              value="${j}"
+              ${answers[idx]!==null && (
+                 isMulti
+                   ? answers[idx].includes(j)
+                   : answers[idx]===j
+               ) ? 'checked':''}
+            /> ${c}
           </label>
         `).join('');
+
         container.innerHTML = `
           <h3>${quiz.title}</h3>
           <div class="progress">
-            ${quiz.questions.map((_,i)=>`<div class="pill" id="pill${i}"></div>`).join('')}
+            ${quiz.questions.map((_,i)=>
+              `<div class="pill" id="pill${i}"></div>`
+            ).join('')}
           </div>
           <div class="question"><strong>Q${idx+1}. ${q.prompt}</strong></div>
           <div class="options ${isMulti?'multi':'single'}">${opts}</div>
-          <div>
+          <div style="margin-top:1rem;">
             ${idx>0?'<button id="back">Back</button>':''}
             <button id="next">${idx<quiz.questions.length-1?'Next':'Finish'}</button>
           </div>
@@ -155,44 +193,49 @@
         const fb      = container.querySelector('#feedback');
 
         if (backBtn) {
-          backBtn.onclick = () => { idx--; render(); };
+          backBtn.onclick = () => { idx--; renderPage(); };
           if (mode==='instant' && pills[idx-1]===false) {
-            backBtn.setAttribute('disabled','');
+            backBtn.disabled = true;
           }
         }
 
         nextBtn.onclick = () => {
+          // collect
           if (isMulti) {
             const sel = [...container.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>+cb.value);
-            if (!sel.length) { alert('Select at least one'); return; }
+            if (!sel.length) { alert('Select at least one.'); return; }
             answers[idx] = sel;
           } else {
             const sel = container.querySelector('input[type="radio"]:checked');
-            if (!sel) { alert('Select one'); return; }
+            if (!sel) { alert('Select one option.'); return; }
             answers[idx] = +sel.value;
           }
 
+          // instant grading
           if (mode==='instant') {
             const ok = gradeQuestion(q, answers[idx]);
             pills[idx] = ok;
-            document.getElementById(`pill${idx}`).classList.add(ok?'correct':'incorrect');
+            document.getElementById(`pill${idx}`)
+              .classList.add(ok?'correct':'incorrect');
             fb.textContent = ok?'✅ Correct':'❌ Incorrect';
-            fb.className = 'feedback ' + (ok?'correct':'incorrect');
+            fb.className   = 'feedback ' + (ok?'correct':'incorrect');
             if (!ok) return;
           }
 
           if (idx < quiz.questions.length-1) {
-            idx++; render();
+            idx++; renderPage();
           } else {
+            // end
             if (mode==='review') {
-              quiz.questions.forEach((qq,i)=>{
+              quiz.questions.forEach((qq,i) => {
                 const ok = gradeQuestion(qq, answers[i]);
                 pills[i] = ok;
-                document.getElementById(`pill${i}`).classList.add(ok?'correct':'incorrect');
+                document.getElementById(`pill${i}`)
+                  .classList.add(ok?'correct':'incorrect');
               });
-              const score = `${pills.filter(x=>x).length}/${pills.length}`;
-              fb.textContent = `Finished! Score ${score}`;
-              fb.className = 'feedback';
+              const total = `${pills.filter(x=>x).length}/${pills.length}`;
+              fb.textContent = `Finished! Score ${total}`;
+              fb.className   = 'feedback';
             } else {
               finish();
             }
@@ -202,13 +245,13 @@
 
       async function finish() {
         modal.style.display = 'none';
-        const score = `${pills.filter(x=>x).length}/${pills.length}`;
-        alert(`Your score ${score}`);
+        const total = `${pills.filter(x=>x).length}/${pills.length}`;
+        alert(`Your score: ${total}`);
         await supa.from('submissions').insert([{
           quiz_id: id,
           student: studentName,
           answers,
-          score,
+          score: total,
           time: new Date().toISOString()
         }]);
       }
