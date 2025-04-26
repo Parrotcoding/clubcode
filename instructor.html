@@ -5,19 +5,19 @@
   <title>Instructor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:1000px }
-    h1,h2 { color:#0c4a7f }
-    section { margin-bottom:2rem }
-    .list { border:1px solid #ddd; padding:1rem }
-    .item, .quiz-item { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #eee }
-    .item:last-child, .quiz-item:last-child { border-bottom:none }
-    .controls button { margin-left:.3rem }
-    form { border:1px solid #ddd; padding:1rem; margin-top:1rem }
-    .question-block { margin-bottom:1rem; padding:1rem; border:1px solid #ccc }
-    .choice { display:flex; align-items:center; margin:.4rem 0 }
-    .choice input[type="checkbox"]{ margin-right:.5rem }
-    input, textarea, button { width:100%; margin:.4rem 0; padding:.4rem }
-    button.add { width:auto }
+    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:1000px; }
+    h1,h2 { color:#0c4a7f; }
+    section { margin-bottom:2rem; }
+    .list { border:1px solid #ddd; padding:1rem; }
+    .item, .quiz-item { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #eee; }
+    .item:last-child, .quiz-item:last-child { border-bottom:none; }
+    .controls button { margin-left:.3rem; }
+    form { border:1px solid #ddd; padding:1rem; margin-top:1rem; }
+    .question-block { margin-bottom:1rem; padding:1rem; border:1px solid #ccc; }
+    .choice { display:flex; align-items:center; margin:.4rem 0; }
+    .choice input[type="checkbox"] { margin-right:.5rem; }
+    input, button { width:100%; margin:.4rem 0; padding:.4rem; }
+    button.add { width:auto; }
   </style>
 </head>
 <body>
@@ -43,7 +43,7 @@
       <input name="id" placeholder="Quiz ID" required>
       <input name="title" placeholder="Quiz Title" required>
       <div id="questionsContainer"></div>
-      <button type="button" id="addQuestion" class="add">Add Question</button>
+      <button type="button" class="add" id="addQuestion">Add Question</button>
       <button type="submit">Save Quiz</button>
     </form>
   </section>
@@ -55,78 +55,151 @@
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
       );
 
-      // LINK HANDLERS
+      // --- Links ---
+
       async function loadLinks() {
-        const { data: links=[] } = await supa.from('links').select('*').order('title');
-        document.getElementById('linkList').innerHTML = links.map(l=>`
+        const { data: links = [], error } = await supa
+          .from('links').select('*').order('title');
+        if (error) console.error('Error loading links:', error);
+        const list = document.getElementById('linkList');
+        list.innerHTML = links.map(l => `
           <div class="item">
             <span>${l.title}</span>
             <div class="controls">
-              <button onclick="toggleLink('${l.id}', ${!l.published})">${l.published?'Unpublish':'Publish'}</button>
+              <button onclick="toggleLink('${l.id}', ${!l.published})">
+                ${l.published ? 'Unpublish' : 'Publish'}
+              </button>
               <button onclick="deleteLink('${l.id}')">Delete</button>
               <button onclick="window.open('${l.url}','_blank')">Open ↗</button>
             </div>
           </div>
-        `).join('')||'<p>No links.</p>';
+        `).join('') || '<p>No links.</p>';
       }
-      window.toggleLink = async (id,p) => { await supa.from('links').update({published:p}).eq('id',id); loadLinks(); };
-      window.deleteLink = async id => { await supa.from('links').delete().eq('id',id); loadLinks(); };
+
+      window.toggleLink = async (id, pub) => {
+        const { error } = await supa
+          .from('links').update({ published: pub }).eq('id', id);
+        if (error) console.error('Error toggling link:', error);
+        loadLinks();
+      };
+
+      window.deleteLink = async id => {
+        const { error } = await supa
+          .from('links').delete().eq('id', id);
+        if (error) console.error('Error deleting link:', error);
+        loadLinks();
+      };
+
       document.getElementById('addLink').onsubmit = async e => {
         e.preventDefault();
-        const f=new FormData(e.target);
-        await supa.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
-        e.target.reset(); loadLinks();
+        const f = new FormData(e.target);
+        const newLink = {
+          id: f.get('id'),
+          title: f.get('title'),
+          url: f.get('url'),
+          published: false
+        };
+        console.log('Inserting link:', newLink);
+        const { error } = await supa.from('links').insert([newLink]);
+        if (error) {
+          console.error('Error inserting link:', error);
+          alert('Failed to save link: ' + error.message);
+        }
+        e.target.reset();
+        loadLinks();
       };
-      loadLinks();
 
-      // QUIZ HANDLERS
+      // --- Quizzes ---
+
       async function loadQuizzes() {
-        const { data: quizzes=[] } = await supa.from('quizzes').select('*').order('id');
-        document.getElementById('quizList').innerHTML = quizzes.map(q=>`
+        const { data: quizzes = [], error } = await supa
+          .from('quizzes').select('*').order('id');
+        if (error) console.error('Error loading quizzes:', error);
+        const list = document.getElementById('quizList');
+        list.innerHTML = quizzes.map(q => `
           <div class="quiz-item">
             <span>${q.id} — ${q.title}</span>
             <div class="controls">
-              <button onclick="toggleQuiz('${q.id}', ${!q.published})">${q.published?'Unpublish':'Publish'}</button>
+              <button onclick="toggleQuiz('${q.id}', ${!q.published})">
+                ${q.published ? 'Unpublish' : 'Publish'}
+              </button>
               <button onclick="deleteQuiz('${q.id}')">Delete</button>
             </div>
           </div>
-        `).join('')||'<p>No quizzes.</p>';
+        `).join('') || '<p>No quizzes.</p>';
       }
-      window.toggleQuiz = async (id,p) => { await supa.from('quizzes').update({published:p}).eq('id',id); loadQuizzes(); };
-      window.deleteQuiz = async id => { await supa.from('quizzes').delete().eq('id',id); loadQuizzes(); };
+
+      window.toggleQuiz = async (id, pub) => {
+        const { error } = await supa
+          .from('quizzes').update({ published: pub }).eq('id', id);
+        if (error) console.error('Error toggling quiz:', error);
+        loadQuizzes();
+      };
+
+      window.deleteQuiz = async id => {
+        const { error } = await supa
+          .from('quizzes').delete().eq('id', id);
+        if (error) console.error('Error deleting quiz:', error);
+        loadQuizzes();
+      };
+
+      // Initial load
+      loadLinks();
       loadQuizzes();
 
-      // Quiz builder
+      // --- Quiz Builder ---
       const qForm = document.getElementById('addQuiz');
       const qCont = document.getElementById('questionsContainer');
+
       document.getElementById('addQuestion').onclick = () => {
         const idx = qCont.children.length;
-        const blk = document.createElement('div');
-        blk.className='question-block';
-        blk.innerHTML = `
+        const block = document.createElement('div');
+        block.className = 'question-block';
+        block.innerHTML = `
           <input name="prompt${idx}" placeholder="Prompt" required>
-          ${[0,1,2,3].map(j=>`
+          ${[0,1,2,3].map(j => `
             <div class="choice">
               <input type="checkbox" name="correct${idx}" value="${j}">
               <input name="choice${idx}${j}" placeholder="Choice ${j+1}" required>
             </div>
           `).join('')}
         `;
-        qCont.appendChild(blk);
+        qCont.appendChild(block);
       };
+
+      // Start with one question
       document.getElementById('addQuestion').click();
 
       qForm.onsubmit = async e => {
         e.preventDefault();
-        const f=new FormData(qForm);
-        const id=f.get('id'), title=f.get('title');
-        const questions = Array.from(qCont.children).map((blk,i)=>({
-          prompt: f.get(`prompt${i}`),
-          choices: [0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
-          correctIdx: Number(f.get(`correct${i}`))||0
+        const f = new FormData(qForm);
+        const id = f.get('id');
+        const title = f.get('title');
+        const questions = Array.from(qCont.children).map((blk, i) => ({
+          prompt:    f.get(`prompt${i}`),
+          choices:   [0,1,2,3].map(j => f.get(`choice${i}${j}`)),
+          correctIdx: Number(f.get(`correct${i}`)) || 0
         }));
-        await supa.from('quizzes').insert([{id,title,questions,published:false}]);
-        qForm.reset(); qCont.innerHTML=''; document.getElementById('addQuestion').click(); loadQuizzes();
+
+        console.log('Inserting quiz:', { id, title, questions });
+
+        const { data, error } = await supa
+          .from('quizzes')
+          .insert([{ id, title, questions, published: false }]);
+
+        if (error) {
+          console.error('❌ Quiz insert error:', error);
+          alert('Failed to save quiz: ' + error.message);
+          return;
+        }
+
+        console.log('✅ Quiz inserted:', data);
+
+        // Reset form and reload
+        qForm.reset();
+        qCont.innerHTML = '';
+        document.getElementById('addQuestion').click();
+        loadQuizzes();
       };
     });
   </script>
