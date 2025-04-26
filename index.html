@@ -2,28 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>HTML Fundamentals – Student Portal</title>
+  <title>Student Portal</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 1rem auto; max-width: 800px; }
-    h1, h2 { color: #0c4a7f; }
-    .quiz-list .quiz-link { cursor: pointer; color: #0366d6; text-decoration: underline; }
+    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:800px; }
+    h1,h2 { color:#0c4a7f; }
+    .quiz-list .quiz-link { cursor:pointer; color:#0366d6; text-decoration:underline; }
     .modal-backdrop {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center;
+      position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center;
     }
-    .modal {
-      background: #fff; padding: 2rem; max-width: 600px; width: 90%;
-      max-height: 90%; overflow: auto; position: relative;
-    }
-    .close-btn { position: absolute; top: .5rem; right: .5rem; cursor: pointer; }
-    .progress { display: flex; gap: 4px; margin-bottom: 1rem; }
-    .pill { flex: 1; height: 12px; background: #e2e8f0; border-radius: 6px; }
-    .pill.correct { background: #4caf50; }
-    .pill.incorrect { background: #555; }
-    .question { margin-bottom: 1rem; }
-    label { display: block; margin: .4rem 0; }
-    button { padding: .5rem 1rem; margin-top: .5rem; }
+    .modal { background:#fff; padding:2rem; max-width:600px; width:90%; max-height:90%; overflow:auto; position:relative; }
+    .close-btn { position:absolute; top:.5rem; right:.5rem; cursor:pointer; }
+    .progress { display:flex; gap:4px; margin-bottom:1rem; }
+    .pill { flex:1; height:12px; background:#e2e8f0; border-radius:6px; }
+    .pill.correct { background:#4caf50; }
+    .pill.incorrect { background:#555; }
+    .question { margin-bottom:1rem; }
+    label { display:block; margin:.4rem 0; }
+    button { padding:.5rem 1rem; margin-top:.5rem; }
   </style>
 </head>
 <body>
@@ -49,134 +46,106 @@
       );
 
       // Load quizzes
-      const { data: quizzes = [], error } = await supa
-        .from('quizzes')
-        .select('id,title,grading_mode')
-        .eq('published', true)
-        .order('id', { ascending: true });
-      if (error) {
-        console.error('Error loading quizzes:', error);
-        document.getElementById('quizList').textContent = 'Failed to load quizzes.';
-        return;
-      }
-
+      const { data: quizzes = [] } = await supa
+        .from('quizzes').select('id,title,grading_mode').eq('published', true).order('id');
       const list = document.getElementById('quizList');
       list.innerHTML = quizzes.length
-        ? quizzes.map(q => `
-            <div>
-              <span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">
-                ${q.title}
-              </span>
-            </div>
-          `).join('')
+        ? quizzes.map(q => `<div><span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">${q.title}</span></div>`).join('')
         : '<p>No quizzes available.</p>';
 
-      // Modal elements
+      // Modal controls
       const modal = document.getElementById('modalBackdrop');
       const container = document.getElementById('quizContainer');
       document.getElementById('closeModal').onclick = () => modal.style.display = 'none';
 
-      // Launch quiz on click
+      // Launch quiz
       list.querySelectorAll('.quiz-link').forEach(el => {
-        el.addEventListener('click', () => runQuiz(el.dataset.id, el.dataset.mode));
+        el.onclick = () => runQuiz(el.dataset.id, el.dataset.mode);
       });
 
       async function runQuiz(id, gradingMode) {
         modal.style.display = 'flex';
-        container.innerHTML = '<p>Loading quiz…</p>';
+        container.innerHTML = '<p>Loading…</p>';
 
-        const { data: [quiz], error: quizErr } = await supa
-          .from('quizzes')
-          .select('*')
-          .eq('id', id);
-        if (quizErr || !quiz) {
-          console.error('Error loading quiz:', quizErr);
-          container.innerHTML = '<p>Failed to load quiz.</p>';
-          return;
-        }
-
-        let idx = 0, answers = [];
+        const { data: [quiz] } = await supa.from('quizzes').select('*').eq('id', id);
+        let idx = 0, answers = [], pills = [];
 
         function renderPage() {
           const q = quiz.questions[idx];
           const isFirst = idx === 0, isLast = idx === quiz.questions.length - 1;
-
           container.innerHTML = `
             <h3>${quiz.title}</h3>
-            <div class="progress">
-              ${quiz.questions.map((_, i) => `<div class="pill" id="pill${i}"></div>`).join('')}
-            </div>
+            <div class="progress">${quiz.questions.map((_,i)=>
+              `<div class="pill" id="pill${i}"></div>`
+            ).join('')}</div>
             <div class="question">
-              <p><strong>Q${idx + 1}. ${q.prompt}</strong></p>
-              ${q.choices.map((c, j) => `
+              <p><strong>Q${idx+1}. ${q.prompt}</strong></p>
+              ${q.choices.map((c,j)=>`
                 <label>
-                  <input type="radio" name="choice" value="${j}">
+                  <input type="radio" name="choice" value="${j}" ${answers[idx]===j?'checked':''}>
                   ${c}
                 </label>
               `).join('')}
             </div>
             <div>
               ${!isFirst ? '<button id="back">Back</button>' : ''}
-              <button id="next">${isLast ? 'Finish' : 'Next'}</button>
+              <button id="next">${isLast?'Finish':'Next'}</button>
             </div>
             <div id="feedback"></div>
           `;
+          // restore pill colors
+          quiz.questions.forEach((_,i)=>{
+            const pill = container.querySelector(`#pill${i}`);
+            if (pills[i] != null) pill.classList.add(pills[i]?'correct':'incorrect');
+          });
 
-          const nextBtn = container.querySelector('#next');
-          const backBtn = container.querySelector('#back');
-          const fb = container.querySelector('#feedback');
+          const nextBtn = container.querySelector('#next'),
+                backBtn = container.querySelector('#back'),
+                fb = container.querySelector('#feedback');
 
-          // Grading logic
-          if (gradingMode === 'instant') {
+          if (gradingMode==='instant') {
             nextBtn.disabled = true;
-            container.querySelectorAll('input[name="choice"]').forEach(radio => {
-              radio.onchange = () => {
-                const val = +radio.value;
-                answers[idx] = val;
-                fb.textContent = val === q.correctIdx ? '✅ Correct' : '❌ Incorrect';
-                container.querySelector(`#pill${idx}`).classList.add(val === q.correctIdx ? 'correct' : 'incorrect');
-                container.querySelectorAll('input').forEach(inp => inp.disabled = true);
-                nextBtn.disabled = false;
-                if (backBtn) backBtn.disabled = true;
+            if (backBtn) backBtn.disabled = true;  // always locked
+            container.querySelectorAll('input[name="choice"]').forEach(radio=>{
+              radio.onchange = ()=>{
+                const val=+radio.value;
+                answers[idx]=val;
+                const correct = val===q.correctIdx;
+                fb.textContent = correct?'✅ Correct':'❌ Incorrect';
+                pills[idx]=correct;
+                container.querySelector(`#pill${idx}`).classList.add(correct?'correct':'incorrect');
+                // lock inputs
+                container.querySelectorAll('input').forEach(i=>i.disabled=true);
+                nextBtn.disabled=false;
               };
             });
           } else {
-            container.querySelectorAll('input[name="choice"]').forEach(radio => {
-              radio.onchange = () => { answers[idx] = +radio.value; };
+            // review & submit
+            container.querySelectorAll('input[name="choice"]').forEach(radio=>{
+              radio.onchange=()=>{answers[idx]=+radio.value;};
             });
           }
 
-          if (backBtn) backBtn.onclick = () => { idx--; renderPage(); };
-          nextBtn.onclick = () => {
-            if (gradingMode === 'review' && answers[idx] == null) {
-              alert('Please select an answer before continuing.');
-              return;
+          if (backBtn) backBtn.onclick = ()=>{ idx--; renderPage(); };
+          nextBtn.onclick = ()=>{
+            if (gradingMode==='review' && answers[idx]==null) {
+              alert('Select an answer first.'); return;
             }
-            if (idx < quiz.questions.length - 1) {
+            if (idx<quiz.questions.length-1) {
               idx++; renderPage();
-            } else {
-              finishQuiz();
-            }
+            } else finish();
           };
         }
 
-        async function finishQuiz() {
-          modal.style.display = 'none';
-          const student = prompt('Enter your name:');
-          if (!student) {
-            alert('Name required.'); return;
-          }
-          let correct = 0;
-          quiz.questions.forEach((q, i) => { if (answers[i] === q.correctIdx) correct++; });
-          const score = `${correct} / ${quiz.questions.length}`;
-          alert(`Your score: ${score}`);
-          await supa.from('submissions').insert([{
-            quiz_id: id,
-            student,
-            answers,
-            score,
-            time: new Date().toISOString()
-          }]);
+        async function finish(){
+          modal.style.display='none';
+          const student = prompt('Your name:');
+          if (!student) { alert('Name required'); return; }
+          let correctCt=0;
+          quiz.questions.forEach((q,i)=>{ if (answers[i]===q.correctIdx) correctCt++; });
+          const score=`${correctCt}/${quiz.questions.length}`;
+          alert(`Score: ${score}`);
+          await supa.from('submissions').insert([{quiz_id:id,student,answers,score,time:new Date().toISOString()}]);
         }
 
         renderPage();
