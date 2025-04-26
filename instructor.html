@@ -24,14 +24,12 @@
       background:var(--card); border-radius:1rem; padding:1rem;
       box-shadow:0 2px 8px rgba(0,0,0,0.05);
     }
-    .quiz-item, .link-item {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:.5rem 0; border-bottom:1px solid #e5e7eb;
-    }
-    .quiz-item:last-child, .link-item:last-child { border-bottom:none; }
     input, select {
-      width:100%; padding:.5rem 1rem; margin:.5rem 0;
-      border:1px solid #d1d5db; border-radius:var(--radius);
+      padding:.5rem 1rem; margin:.5rem 0; border:1px solid #d1d5db; border-radius:var(--radius);
+    }
+    input[type="text"] {
+      flex: 1 1 auto;
+      min-width: 0;
     }
     button {
       padding:.5rem 1rem; background:var(--primary); color:#fff;
@@ -43,14 +41,16 @@
     .questions { list-style:none; padding:0; margin:1rem 0; }
     .question-block {
       background:#f3f4f6; padding:1rem; border-radius:1rem;
-      margin-bottom:1rem; display:flex; gap:1rem; align-items:start;
+      margin-bottom:1rem; display:flex; gap:1rem; align-items:flex-start;
     }
     .question-content { flex:1; }
+
     .choice-row {
       display:flex; align-items:center; gap:.5rem; margin:.4rem 0;
     }
     .choice-row input[type="checkbox"] { margin:0; }
-    .choice-row input[type="text"] { flex:1; }
+    .choice-row input[type="text"] { flex:1 1 auto; min-width:0; }
+
     .add-choice {
       background:#10b981; color:#fff; border:none;
       padding:.3rem .6rem; border-radius:var(--radius);
@@ -169,9 +169,11 @@
       quizForm.title.value        = q.title;
       quizForm.grading_mode.value = q.grading_mode;
       questions.innerHTML = '';
-      q.questions.forEach((ques,i)=>{
+      q.questions.forEach((ques,i) => {
         questions.appendChild(renderQuestion(
-          i, ques.prompt, ques.choices,
+          i,
+          ques.prompt,
+          ques.choices,
           ques.multi
             ? Array.from(ques.choices.keys()).filter(j=>ques.correctIdxSingle==j)
             : [ques.correctIdxSingle]
@@ -181,7 +183,7 @@
 
     // Render question
     let dragSrc=null;
-    function renderQuestion(idx,prompt='',choices=['',''],correct=[0]){
+    function renderQuestion(idx,prompt='',choices=['',''],correct=[0]) {
       const li=document.createElement('li');
       li.className='question-block'; li.draggable=true; li.dataset.idx=idx;
 
@@ -200,8 +202,7 @@
         </div>
         <button type="button" class="add-choice" data-idx="${idx}">+ Add Choice</button>
       `;
-      // Add choice handler
-      content.querySelector('.add-choice').onclick=()=>{
+      content.querySelector('.add-choice').onclick=()=> {
         const i=content.querySelector('.add-choice').dataset.idx;
         const div=content.querySelector(`#choices-${i}`);
         const newIdx=div.children.length;
@@ -214,26 +215,20 @@
         div.appendChild(row);
         reorderQuestions();
       };
-      // Delete question
       const del=document.createElement('button');
-      del.className='delete-q';
-      del.textContent='✖';
+      del.className='delete-q'; del.textContent='✖';
       del.onclick=()=>{li.remove(); reorderQuestions();};
 
       li.appendChild(content);
       li.appendChild(del);
 
-      // Drag & drop
-      li.addEventListener('dragstart',()=>{
-        li.classList.add('dragging'); dragSrc=li;
-      });
+      li.addEventListener('dragstart',()=>{li.classList.add('dragging'); dragSrc=li;});
       li.addEventListener('dragend',()=>li.classList.remove('dragging'));
       li.addEventListener('dragover',e=>e.preventDefault());
       li.addEventListener('drop',()=>{
         questions.insertBefore(dragSrc,li.nextSibling);
         reorderQuestions();
       });
-
       return li;
     }
     function reorderQuestions(){
@@ -260,12 +255,7 @@
         const prompt=f.get(`prompt${i}`);
         const choices=Array.from(li.querySelectorAll(`[name^="choice${i}"]`)).map(inp=>inp.value);
         const correct=Array.from(li.querySelectorAll(`[name="correct${i}"]:checked`)).map(c=>+c.value);
-        return {
-          prompt, choices,
-          correctIdx: correct.length===1?correct[0]:null,
-          multi: correct.length>1,
-          correctIdxSingle: correct[0]
-        };
+        return {prompt,choices,correctIdx:correct.length===1?correct[0]:null,multi:correct.length>1,correctIdxSingle:correct[0]};
       });
       await supa.from('quizzes').upsert([{id,title,grading_mode:mode,questions:qArr,published:false}]);
       quizForm.reset(); questions.innerHTML=''; addQ.click();
