@@ -13,7 +13,8 @@
     *{box-sizing:border-box;}
     body{margin:0;padding:2rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);}
     h1{font-family:'Poppins',sans-serif;font-size:2rem;margin-bottom:1.5rem;}
-    .list{background:var(--card);border-radius:1rem;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:2rem;}
+    section{margin-bottom:2rem;}
+    .list{background:var(--card);border-radius:1rem;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
     .item{display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid #e5e7eb;}
     .item:last-child{border-bottom:none;}
     .quiz-link{color:var(--primary);text-decoration:underline;cursor:pointer;}
@@ -40,15 +41,15 @@
 <body>
   <h1>HTML Fundamentals</h1>
 
-  <div class="list">
+  <section>
     <h2>Links</h2>
-    <div id="links">Loading…</div>
-  </div>
+    <div id="links" class="list">Loading links…</div>
+  </section>
 
-  <div class="list">
+  <section>
     <h2>Quizzes</h2>
-    <div id="quizList">Loading…</div>
-  </div>
+    <div id="quizList" class="list">Loading quizzes…</div>
+  </section>
 
   <div id="modalBackdrop" class="modal-backdrop">
     <div class="modal">
@@ -59,39 +60,83 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
+    const linksDiv = document.getElementById('links');
+    const quizDiv  = document.getElementById('quizList');
+    if (!linksDiv || !quizDiv) {
+      console.error('Missing #links or #quizList in HTML');
+      return;
+    }
+
     const supa = supabase.createClient(
       'https://kqprtnxmostvagtildsn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…Ep7NOUc'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
     );
 
-    // --- LOAD LINKS ---
-    const { data: links = [] } = await supa
-      .from('links').select('title,url').eq('published',true).order('title');
-    const linksDiv = document.getElementById('links');
-    linksDiv.innerHTML = links.length
-      ? links.map(l=>`<div class="item"><span>${l.title}</span><button onclick="window.open('${l.url}','_blank')">Open ↗</button></div>`).join('')
-      : '<p>No links.</p>';
+    // --- FETCH AND RENDER LINKS ---
+    const linkResp = await supa
+      .from('links')
+      .select('title,url')
+      .eq('published', true)
+      .order('title', { ascending: true });
 
-    // --- LOAD QUIZZES ---
-    const { data: quizzes = [] } = await supa
-      .from('quizzes').select('id,title,grading_mode').eq('published',true).order('id');
-    const quizDiv = document.getElementById('quizList');
-    quizDiv.innerHTML = quizzes.length
-      ? quizzes.map(q=>`<div class="item"><span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">${q.title}</span></div>`).join('')
-      : '<p>No quizzes.</p>';
-    quizDiv.querySelectorAll('.quiz-link').forEach(el=>
+    console.log('LINKS RESPONSE:', linkResp);
+    const { data: links, error: linkErr } = linkResp;
+
+    if (linkErr) {
+      console.error('Error loading links:', linkErr);
+      linksDiv.innerHTML = '<p>Unable to load links.</p>';
+    } else if (!Array.isArray(links) || links.length === 0) {
+      linksDiv.innerHTML = '<p>No links published.</p>';
+    } else {
+      linksDiv.innerHTML = links.map(l => `
+        <div class="item">
+          <span>${l.title}</span>
+          <button onclick="window.open('${l.url}','_blank')">Open ↗</button>
+        </div>
+      `).join('');
+    }
+
+    // --- FETCH AND RENDER QUIZZES ---
+    const quizResp = await supa
+      .from('quizzes')
+      .select('id,title,grading_mode')
+      .eq('published', true)
+      .order('id', { ascending: true });
+
+    console.log('QUIZZES RESPONSE:', quizResp);
+    const { data: quizzes, error: quizErr } = quizResp;
+
+    if (quizErr) {
+      console.error('Error loading quizzes:', quizErr);
+      quizDiv.innerHTML = '<p>Unable to load quizzes.</p>';
+      return;
+    }
+    if (!Array.isArray(quizzes) || quizzes.length === 0) {
+      quizDiv.innerHTML = '<p>No quizzes available.</p>';
+      return;
+    }
+    quizDiv.innerHTML = quizzes.map(q => `
+      <div class="item">
+        <span class="quiz-link" data-id="${q.id}" data-mode="${q.grading_mode}">
+          ${q.title}
+        </span>
+      </div>
+    `).join('');
+    quizDiv.querySelectorAll('.quiz-link').forEach(el =>
       el.onclick = () => runQuiz(el.dataset.id, el.dataset.mode)
     );
 
-    // --- RUN QUIZ ---
+    // --- QUIZ RUNNER (instant & review modes) ---
     async function runQuiz(id, mode) {
-      const { data: [quiz] } = await supa.from('quizzes').select('*').eq('id', id);
+      const { data: [quiz] } = await supa
+        .from('quizzes')
+        .select('*')
+        .eq('id', id);
 
-      // ensure each question has a correctIdxArray
+      // Ensure multi-choice array
       quiz.questions.forEach(q => {
-        if (q.multi) {
-          // previously saved correctIdxArray, if missing
-          q.correctIdxArray = q.correctIdxArray || [q.correctIdxSingle];
+        if (q.multi && !Array.isArray(q.correctIdxArray)) {
+          q.correctIdxArray = [q.correctIdxSingle];
         }
       });
 
@@ -108,19 +153,19 @@
       `;
       C.querySelector('#start').onclick = () => {
         const n = C.querySelector('#studentName').value.trim();
-        if (!n) return alert('Enter your name');
+        if (!n) return alert('Please enter your name.');
         studentName = n;
         answers = Array(quiz.questions.length).fill(null);
         pills   = Array(quiz.questions.length).fill(null);
         renderPage();
       };
 
-      function grade(q, ans) {
+      function gradeQuestion(q, ans) {
         if (q.multi) {
           const cset = new Set(q.correctIdxArray);
           const aset = new Set(ans);
           if (aset.size !== cset.size) return false;
-          return [...aset].every(v=>cset.has(v));
+          return [...aset].every(v => cset.has(v));
         }
         return ans === q.correctIdxSingle;
       }
@@ -130,17 +175,20 @@
         const isM = q.multi;
         const opts = q.choices.map((c,j)=>`
           <label>
-            <input type="${isM?'checkbox':'radio'}" name="choice" value="${j}"
-              ${answers[idx]!==null && (isM
-                  ? answers[idx].includes(j)
-                  : answers[idx]===j) ? 'checked':''}
+            <input type="${isM?'checkbox':'radio'}"
+                   name="choice" value="${j}"
+                   ${answers[idx]!==null && (isM
+                     ? answers[idx].includes(j)
+                     : answers[idx]===j) ? 'checked':''}
             /> ${c}
           </label>
         `).join('');
 
         C.innerHTML = `
           <h3>${quiz.title}</h3>
-          <div class="progress">${quiz.questions.map((_,i)=>`<div class="pill" id="pill${i}"></div>`).join('')}</div>
+          <div class="progress">
+            ${quiz.questions.map((_,i)=>`<div class="pill" id="pill${i}"></div>`).join('')}
+          </div>
           <div class="question"><strong>Q${idx+1}. ${q.prompt}</strong></div>
           <div class="options ${isM?'multi':'single'}">${opts}</div>
           <div style="margin-top:1rem;">
@@ -159,34 +207,31 @@
         }
 
         next.onclick = () => {
-          // collect
           if (isM) {
             const sel = [...C.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>+cb.value);
-            if (!sel.length) return alert('Select at least one');
+            if (!sel.length) return alert('Select at least one.');
             answers[idx] = sel;
           } else {
             const r = C.querySelector('input[type="radio"]:checked');
-            if (!r) return alert('Select one');
+            if (!r) return alert('Select one option.');
             answers[idx] = +r.value;
           }
 
-          // instant grading
           if (mode==='instant') {
-            const ok = grade(q, answers[idx]);
+            const ok = gradeQuestion(q, answers[idx]);
             pills[idx] = ok;
             document.getElementById(`pill${idx}`).classList.add(ok?'correct':'incorrect');
             fb.textContent = ok?'✅ Correct':'❌ Incorrect';
             fb.className   = 'feedback ' + (ok?'correct':'incorrect');
-            if (!ok) return; // block Next on wrong
+            if (!ok) return;  // block Next on wrong
           }
 
           if (idx < quiz.questions.length-1) {
             idx++; renderPage();
           } else {
-            // finished
             if (mode==='review') {
               quiz.questions.forEach((qq,i)=>{
-                const ok = grade(qq, answers[i]);
+                const ok = gradeQuestion(qq, answers[i]);
                 pills[i] = ok;
                 document.getElementById(`pill${i}`).classList.add(ok?'correct':'incorrect');
               });
@@ -205,8 +250,8 @@
         const total = `${pills.filter(x=>x).length}/${pills.length}`;
         alert(`Your score: ${total}`);
         await supa.from('submissions').insert([{
-          quiz_id: id, student: studentName,
-          answers, score: total, time: new Date().toISOString()
+          quiz_id:id, student:studentName,
+          answers, score:total, time:new Date().toISOString()
         }]);
       }
 
