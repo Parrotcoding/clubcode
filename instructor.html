@@ -66,7 +66,6 @@
       );
 
       // --- Quizzes ---
-
       async function loadQuizzes() {
         const { data: quizzes = [], error } = await supa
           .from('quizzes')
@@ -79,8 +78,7 @@
           return;
         }
 
-        const quizList = document.getElementById('quizList');
-        quizList.innerHTML = quizzes.length
+        document.getElementById('quizList').innerHTML = quizzes.length
           ? quizzes.map(q => `
               <div class="quiz-item">
                 <div>
@@ -94,10 +92,9 @@
             `).join('')
           : '<p>No quizzes.</p>';
 
-        // Load submissions after quizzes
+        // Load submissions now that quizzes exist
         loadSubmissions();
       }
-
       window.toggleQuiz = async (id, pub) => {
         await supa.from('quizzes').update({ published: pub }).eq('id', id);
         loadQuizzes();
@@ -108,13 +105,12 @@
       };
 
       // --- Submissions ---
-
       async function loadSubmissions() {
         const section = document.getElementById('submissionsSection');
         const { data: subs, error } = await supa
           .from('submissions')
-          .select('quiz_id,student,score,time')
-          .order('time', { ascending: false });
+          .select('*')
+          .order('time', { ascending: false }); // if 'time' fails, adjust below
 
         if (error) {
           console.error('Error loading submissions:', error);
@@ -126,13 +122,23 @@
           return;
         }
 
-        // Group by quiz_id
-        const grouped = subs.reduce((acc, s) => {
-          (acc[s.quiz_id] = acc[s.quiz_id] || []).push(s);
+        // Log an example so you can inspect real column names
+        console.log('Submission row example:', subs[0]);
+
+        // Map these to your actual column names after inspecting console:
+        const QUIZ_KEY    = 'quiz_id';   // default: quiz_id
+        const STUDENT_KEY = 'student';   // default: student
+        const SCORE_KEY   = 'score';     // default: score
+        const TIME_KEY    = 'time';      // if your timestamp column is named differently, change here
+
+        // Group by quiz
+        const grouped = subs.reduce((acc, row) => {
+          const q = row[QUIZ_KEY];
+          (acc[q] = acc[q] || []).push(row);
           return acc;
         }, {});
 
-        // Render groups
+        // Render tables per quiz
         section.innerHTML = Object.entries(grouped).map(([quizId, list]) => `
           <h4>Quiz ${quizId}</h4>
           <table>
@@ -140,11 +146,11 @@
               <tr><th>Student</th><th>Score</th><th>Time</th></tr>
             </thead>
             <tbody>
-              ${list.map(s => `
+              ${list.map(r => `
                 <tr>
-                  <td>${s.student}</td>
-                  <td>${s.score}</td>
-                  <td>${new Date(s.time).toLocaleString()}</td>
+                  <td>${r[STUDENT_KEY]}</td>
+                  <td>${r[SCORE_KEY] ?? ''}</td>
+                  <td>${new Date(r[TIME_KEY]).toLocaleString()}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -153,10 +159,8 @@
       }
 
       // --- Quiz Builder ---
-
       const qForm = document.getElementById('addQuiz');
       const qCont = document.getElementById('questionsContainer');
-
       document.getElementById('addQuestion').onclick = () => {
         const i = qCont.children.length;
         const blk = document.createElement('div');
@@ -172,8 +176,6 @@
         `;
         qCont.appendChild(blk);
       };
-
-      // start with one question block
       document.getElementById('addQuestion').click();
 
       qForm.onsubmit = async e => {
@@ -199,7 +201,6 @@
       };
 
       // --- Links Management ---
-
       async function loadLinks() {
         const { data: links = [], error } = await supa
           .from('links').select('*').order('title');
@@ -233,21 +234,20 @@
         await supa.from('links').delete().eq('id', id);
         loadLinks();
       };
-
       document.getElementById('addLink').onsubmit = async e => {
         e.preventDefault();
         const f = new FormData(e.target);
         await supa.from('links').insert([{
-          id:    f.get('id'),
+          id: f.get('id'),
           title: f.get('title'),
-          url:   f.get('url'),
+          url: f.get('url'),
           published: false
         }]);
         e.target.reset();
         loadLinks();
       };
 
-      // initial load
+      // Initial data load
       loadQuizzes();
       loadLinks();
     });
