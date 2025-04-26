@@ -42,12 +42,8 @@
       <button type="submit">Save Quiz</button>
     </form>
 
-    <div id="submissionsSection" style="display:none;">
-      <h3>Submissions for <span id="subQuizId"></span></h3>
-      <table><thead><tr><th>Student</th><th>Score</th><th>Time</th></tr></thead>
-        <tbody id="subsList"></tbody>
-      </table>
-    </div>
+    <h3>Submissions</h3>
+    <div id="submissionsSection" class="list">Loading submissions…</div>
   </section>
 
   <!-- Links -->
@@ -63,91 +59,119 @@
   </section>
 
   <script>
-    document.addEventListener('DOMContentLoaded',async()=>{
-      const supa=supabase.createClient(
+    document.addEventListener('DOMContentLoaded', async () => {
+      const supa = supabase.createClient(
         'https://kqprtnxmostvagtildsn.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
       );
 
-      // Load & render quizzes
-      async function loadQuizzes(){
-        const {data:qs=[]} = await supa.from('quizzes')
-          .select('id,title,grading_mode,published').order('id');
-        document.getElementById('quizList').innerHTML=qs.map(q=>`
+      // Load quizzes + submissions
+      async function loadQuizzes() {
+        const { data: quizzes = [] } = await supa
+          .from('quizzes').select('id,title,grading_mode,published').order('id');
+        document.getElementById('quizList').innerHTML = quizzes.map(q => `
           <div class="quiz-item">
-            <span onclick="viewSubs('${q.id}')" style="cursor:pointer;">${q.id} — ${q.title}</span>
-            <span>[${q.grading_mode}]</span>
-            <div class="controls">
-              <button onclick="toggleQuiz('${q.id}',${!q.published})">${q.published?'Unpub':'Pub'}</button>
+            <div>
+              <strong>${q.id} — ${q.title}</strong> [${q.grading_mode}] 
+              <button onclick="toggleQuiz('${q.id}',${!q.published})">
+                ${q.published?'Unpub':'Pub'}
+              </button>
               <button onclick="deleteQuiz('${q.id}')">Del</button>
             </div>
           </div>
-        `).join('')||'<p>No quizzes.</p>';
+        `).join('') || '<p>No quizzes.</p>';
+
+        // After listing quizzes, load all submissions
+        loadSubmissions();
       }
-      window.toggleQuiz=async(id,p)=>{await supa.from('quizzes').update({published:p}).eq('id',id);loadQuizzes();};
-      window.deleteQuiz=async id=>{await supa.from('quizzes').delete().eq('id',id);loadQuizzes();};
+      window.toggleQuiz = async (id, pub) => { await supa.from('quizzes').update({published:pub}).eq('id',id); loadQuizzes(); };
+      window.deleteQuiz = async id => { await supa.from('quizzes').delete().eq('id',id); loadQuizzes(); };
+
+      async function loadSubmissions() {
+        const { data: subs = [] } = await supa
+          .from('submissions').select('quiz_id,student,score,time').order('time',{ascending:false});
+        const section = document.getElementById('submissionsSection');
+        if (!subs.length) {
+          section.innerHTML = '<p>No submissions yet.</p>';
+          return;
+        }
+        // Group by quiz
+        const grouped = subs.reduce((acc, s) => {
+          (acc[s.quiz_id] = acc[s.quiz_id]||[]).push(s);
+          return acc;
+        }, {});
+        // Render
+        section.innerHTML = Object.entries(grouped).map(([quizId, list])=>`
+          <h4>Quiz ${quizId}</h4>
+          <table>
+            <thead><tr><th>Student</th><th>Score</th><th>Time</th></tr></thead>
+            <tbody>
+              ${list.map(s=>`
+                <tr>
+                  <td>${s.student}</td>
+                  <td>${s.score}</td>
+                  <td>${new Date(s.time).toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `).join('');
+      }
+
       loadQuizzes();
 
-      // View submissions
-      window.viewSubs=async id=>{
-        document.getElementById('subQuizId').textContent=id;
-        const {data:subs=[]}=await supa.from('submissions')
-          .select('student,score,time').eq('quiz_id',id).order('time',{ascending:false});
-        document.getElementById('subsList').innerHTML=subs.map(s=>`
-          <tr><td>${s.student}</td><td>${s.score}</td>
-          <td>${new Date(s.time).toLocaleString()}</td></tr>
-        `).join('');
-        document.getElementById('submissionsSection').style.display='block';
-      };
-
-      // Quiz builder
-      const qForm=document.getElementById('addQuiz'), qCont=document.getElementById('questionsContainer');
-      document.getElementById('addQuestion').onclick=()=>{
-        const i=qCont.children.length,blk=document.createElement('div');
-        blk.className='question-block';
-        blk.innerHTML=`
+      // Quiz builder (same as before)...
+      const qForm = document.getElementById('addQuiz'), qCont = document.getElementById('questionsContainer');
+      document.getElementById('addQuestion').onclick = () => {
+        const i = qCont.children.length;
+        const blk = document.createElement('div');
+        blk.className = 'question-block';
+        blk.innerHTML = `
           <input name="prompt${i}" placeholder="Prompt" required>
-          ${[0,1,2,3].map(j=>`
+          ${[0,1,2,3].map(j => `
             <div class="choice">
               <input type="checkbox" name="correct${i}" value="${j}">
               <input name="choice${i}${j}" placeholder="Choice ${j+1}" required>
-            </div>`).join('')}
+            </div>
+          `).join('')}
         `;
         qCont.appendChild(blk);
       };
       document.getElementById('addQuestion').click();
 
-      qForm.onsubmit=async e=>{
+      qForm.onsubmit = async e => {
         e.preventDefault();
-        const f=new FormData(qForm),id=f.get('id'),title=f.get('title'),mode=f.get('grading_mode');
-        const questions=Array.from(qCont.children).map((blk,i)=>({
-          prompt:f.get(`prompt${i}`),
-          choices:[0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
-          correctIdx:Number(f.get(`correct${i}`))||0
+        const f = new FormData(qForm), id = f.get('id'), title = f.get('title'), mode = f.get('grading_mode');
+        const questions = Array.from(qCont.children).map((blk,i)=>({
+          prompt: f.get(`prompt${i}`),
+          choices: [0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
+          correctIdx: Number(f.get(`correct${i}`))||0
         }));
         await supa.from('quizzes').upsert([{id,title,grading_mode:mode,questions,published:false}]);
-        qForm.reset();qCont.innerHTML='';document.getElementById('addQuestion').click();
-        document.getElementById('submissionsSection').style.display='none';
+        qForm.reset(); qCont.innerHTML=''; document.getElementById('addQuestion').click();
         loadQuizzes();
       };
 
-      // Links
-      async function loadLinks(){
-        const {data:ls=[]}=await supa.from('links').select('*').order('title');
-        document.getElementById('linkList').innerHTML=ls.map(l=>`
-          <div class="quiz-item">
+      // Links management
+      async function loadLinks() {
+        const { data: links = [] } = await supa.from('links').select('*').order('title');
+        const div = document.getElementById('linkList');
+        div.innerHTML = links.map(l=>`
+          <div class="link-item">
             <span>${l.title}</span>
             <div class="controls">
-              <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpub':'Pub'}</button>
+              <button onclick="toggleLink('${l.id}',${!l.published})">
+                ${l.published?'Unpub':'Pub'}
+              </button>
               <button onclick="deleteLink('${l.id}')">Del</button>
               <button onclick="window.open('${l.url}','_blank')">Open</button>
             </div>
           </div>
         `).join('')||'<p>No links.</p>';
       }
-      window.toggleLink=async(id,p)=>{await supa.from('links').update({published:p}).eq('id',id);loadLinks();};
-      window.deleteLink=async id=>{await supa.from('links').delete().eq('id',id);loadLinks();};
-      document.getElementById('addLink').onsubmit=async e=>{
+      window.toggleLink = async (id,p)=>{await supa.from('links').update({published:p}).eq('id',id);loadLinks();};
+      window.deleteLink = async id =>{await supa.from('links').delete().eq('id',id);loadLinks();};
+      document.getElementById('addLink').onsubmit = async e=>{
         e.preventDefault();
         const f=new FormData(e.target);
         await supa.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
