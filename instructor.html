@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Instructor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Poppins:wght@600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Poppins:wght@600&display=swap"
+    rel="stylesheet"
+  />
   <style>
     :root {
       --primary: #4f46e5;
@@ -14,25 +17,67 @@
       --radius: 9999px;
     }
     * { box-sizing: border-box; }
-    body { margin:0; padding:2rem; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); }
-    h1 { font-family:'Poppins',sans-serif; font-size:2rem; margin-bottom:1rem; }
-    section { margin-bottom:2rem; }
-    .list { background:var(--card); border-radius:1rem; padding:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-    .quiz-item, .link-item { display:flex; align-items:center; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid #e5e7eb; }
-    .quiz-item:last-child, .link-item:last-child { border-bottom:none; }
-    input, select { width:100%; padding:.5rem 1rem; margin:.5rem 0; border:1px solid #d1d5db; border-radius:var(--radius); }
-    button { padding:.5rem 1rem; background:var(--primary); color:#fff; border-radius:var(--radius); cursor:pointer; transition:background .2s; }
-    button:hover { background:#4338ca; }
-    .questions { list-style:none; padding:0; margin:1rem 0; }
-    .question-block { background:#f3f4f6; padding:1rem; border-radius:1rem; margin-bottom:1rem; display:flex; gap:1rem; align-items:start; }
-    .delete-q { background:#ef4444; margin-left:auto; }
-    .submission-dropdown { margin-bottom:1rem; }
-    .submission-header { background:#f3f4f6; padding:.75rem; border-radius:var(--radius); cursor:pointer; }
-    .submission-list { display:none; padding:.75rem; }
-    table { width:100%; border-collapse:collapse; }
-    th,td { border:1px solid #e5e7eb; padding:.5rem; text-align:left; }
-    .delete-btn { background:none; color:#ef4444; cursor:pointer; border:none; }
-    .inline-input { padding:.5rem 1rem; margin-right:.5rem; border:1px solid #d1d5db; border-radius:var(--radius); }
+    body { margin: 0; padding: 2rem; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+    h1 { font-family: 'Poppins', sans-serif; font-size: 2rem; margin-bottom: 1rem; }
+    section { margin-bottom: 2rem; }
+    .list {
+      background: var(--card);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .quiz-item, .link-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .5rem 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .quiz-item:last-child, .link-item:last-child { border-bottom: none; }
+    input, select {
+      width: 100%;
+      padding: .5rem 1rem;
+      margin: .5rem 0;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius);
+    }
+    button {
+      padding: .5rem 1rem;
+      background: var(--primary);
+      color: #fff;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background .2s;
+    }
+    button:hover { background: #4338ca; }
+    .questions { list-style: none; padding: 0; margin: 1rem 0; }
+    .question-block {
+      background: #f3f4f6;
+      padding: 1rem;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: start;
+    }
+    .delete-q { background: #ef4444; margin-left: auto; }
+    .submission-dropdown { margin-bottom: 1rem; }
+    .submission-header {
+      background: #f3f4f6;
+      padding: .75rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .submission-list { display: none; padding: .75rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e5e7eb; padding: .5rem; text-align: left; }
+    .delete-btn { background: none; color: #ef4444; cursor: pointer; border: none; }
+    .inline-input {
+      padding: .5rem 1rem;
+      margin-right: .5rem;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius);
+    }
   </style>
 </head>
 <body>
@@ -41,12 +86,12 @@
   <!-- Quizzes -->
   <section class="list">
     <h2>Quizzes</h2>
-    <div id="quizList">Loading…</div>
+    <div id="quizList"></div>
 
     <h3>Create / Edit Quiz</h3>
     <form id="quizForm">
-      <input name="id" placeholder="Quiz ID" required>
-      <input name="title" placeholder="Quiz Title" required>
+      <input name="id" placeholder="Quiz ID" required />
+      <input name="title" placeholder="Quiz Title" required />
       <select name="grading_mode" required>
         <option value="instant">Instant feedback</option>
         <option value="review">Review & submit</option>
@@ -60,197 +105,233 @@
   <!-- Submissions -->
   <section class="list">
     <h2>Submissions</h2>
-    <div id="submissionsSection">Loading…</div>
+    <div id="submissionsSection"></div>
   </section>
 
   <!-- Links -->
   <section class="list">
     <h2>Links</h2>
-    <div id="linkList">Loading…</div>
+    <div id="linkList"></div>
     <form id="linkForm" style="margin-top:1rem;">
-      <input name="id" placeholder="Link ID" required>
-      <input name="title" placeholder="Title" required>
-      <input name="url" placeholder="URL" required>
+      <input name="id" placeholder="Link ID" required />
+      <input name="title" placeholder="Title" required />
+      <input name="url" placeholder="URL" required />
       <button type="submit">Save Link</button>
     </form>
   </section>
 
   <script>
-  (async()=>{
-    const supa = supabase.createClient(
-      'https://kqprtnxmostvagtildsn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'
-    );
+    document.addEventListener('DOMContentLoaded', () => {
+      const supa = supabase.createClient(
+        'https://kqprtnxmostvagtildsn.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'
+      );
 
-    // Load quizzes
-    async function loadQuizzes(){
-      const { data: qs=[] } = await supa.from('quizzes')
-        .select('id,title,grading_mode,published').order('id');
-      document.getElementById('quizList').innerHTML = qs.map(q=>`
-        <div class="quiz-item">
-          <span onclick="editQuiz('${q.id}')" style="cursor:pointer;">${q.id} — ${q.title}</span>
-          <div>
-            <button onclick="toggleQuiz('${q.id}',${!q.published})">${q.published?'Unpub':'Pub'}</button>
-            <button onclick="deleteQuiz('${q.id}')">Del</button>
-          </div>
-        </div>
-      `).join('')||'<p>No quizzes.</p>';
-    }
-    window.toggleQuiz=async(i,p)=>{ await supa.from('quizzes').update({published:p}).eq('id',i); loadQuizzes(); loadSubmissions(); };
-    window.deleteQuiz=async i=>{ await supa.from('quizzes').delete().eq('id',i); loadQuizzes(); loadSubmissions(); };
+      const quizListEl = document.getElementById('quizList');
+      const subsEl     = document.getElementById('submissionsSection');
+      const linkListEl = document.getElementById('linkList');
+      const quizForm   = document.getElementById('quizForm');
+      const questions  = document.getElementById('questions');
+      const addQ       = document.getElementById('addQ');
+      const linkForm   = document.getElementById('linkForm');
 
-    window.editQuiz=async id=>{
-      const { data:[q] } = await supa.from('quizzes').select('*').eq('id',id);
-      quizForm.id.value=q.id;
-      quizForm.title.value=q.title;
-      quizForm.grading_mode.value=q.grading_mode;
-      questions.innerHTML='';
-      q.questions.forEach((ques,i)=>{
-        const li=renderQuestion(i,ques.prompt,ques.choices, ques.multi 
-          ? [...Array(ques.choices.length).keys()].filter(j=>ques.correctIdxSingle==j) 
-          : [ques.correctIdxSingle]
-        );
-        questions.appendChild(li);
-      });
-    };
-
-    // Quiz builder
-    const quizForm=document.getElementById('quizForm'),
-          questions=document.getElementById('questions'),
-          addQ=document.getElementById('addQ');
-    let dragSrc=null;
-    function renderQuestion(idx,prompt='',choices=['',''],correct=[0]){
-      const li=document.createElement('li');
-      li.className='question-block'; li.draggable=true; li.dataset.idx=idx;
-      li.innerHTML=`
-        <div style="flex:1;">
-          <input name="prompt${idx}" placeholder="Prompt" value="${prompt}">
-          ${choices.map((c,j)=>`
+      // Load quizzes
+      async function loadQuizzes(){
+        const { data: qs=[] } = await supa
+          .from('quizzes').select('id,title,grading_mode,published').order('id');
+        quizListEl.innerHTML = qs.map(q=>`
+          <div class="quiz-item">
+            <span onclick="editQuiz('${q.id}')" style="cursor:pointer;">${q.id} — ${q.title}</span>
             <div>
-              <input type="checkbox" name="correct${idx}" value="${j}" ${correct.includes(j)?'checked':''}>
-              <input name="choice${idx}${j}" placeholder="Choice ${j+1}" value="${c}">
+              <button onclick="toggleQuiz('${q.id}',${!q.published})">
+                ${q.published?'Unpublish':'Publish'}
+              </button>
+              <button onclick="deleteQuiz('${q.id}')">Delete</button>
             </div>
-          `).join('')}
-        </div>
-        <button class="delete-q">✖</button>
-      `;
-      // Delete
-      li.querySelector('.delete-q').onclick=()=>{
-        li.remove(); reorder();
+          </div>
+        `).join('') || '<p>No quizzes.</p>';
+      }
+
+      window.toggleQuiz = async (id,pub) => {
+        await supa.from('quizzes').update({ published: pub }).eq('id', id);
+        loadQuizzes(); loadSubmissions();
       };
-      // Drag handlers now broken out
-      li.addEventListener('dragstart', e => {
-        li.classList.add('dragging');
-        dragSrc = li;
-      });
-      li.addEventListener('dragend', e => {
-        li.classList.remove('dragging');
-      });
-      li.addEventListener('dragover', e => e.preventDefault());
-      li.addEventListener('drop', e => {
-        e.preventDefault();
-        questions.insertBefore(dragSrc, li.nextSibling);
-        reorder();
-      });
-      return li;
-    }
-    function reorder(){
-      Array.from(questions.children).forEach((li,i)=>{
-        li.dataset.idx=i;
-        Array.from(li.querySelectorAll('input')).forEach(inp=>{
-          inp.name = inp.name.replace(/\d+/,i);
+      window.deleteQuiz = async id => {
+        await supa.from('quizzes').delete().eq('id', id);
+        loadQuizzes(); loadSubmissions();
+      };
+
+      window.editQuiz = async id => {
+        const { data:[q] } = await supa.from('quizzes').select('*').eq('id', id);
+        quizForm.id.value            = q.id;
+        quizForm.title.value         = q.title;
+        quizForm.grading_mode.value  = q.grading_mode;
+        questions.innerHTML = '';
+        q.questions.forEach((ques,i) => {
+          questions.appendChild(renderQuestion(i, ques.prompt, ques.choices, ques.multi ? 
+            [...Array(ques.choices.length).keys()].filter(j=>ques.correctIdxSingle==j) : 
+            [ques.correctIdxSingle]
+          ));
         });
-      });
-    }
-    addQ.onclick=()=>{ questions.appendChild(renderQuestion(questions.children.length)); reorder(); };
-    addQ.click();
+      };
 
-    quizForm.onsubmit=async e=>{
-      e.preventDefault();
-      const f=new FormData(quizForm),
-            id=f.get('id'), title=f.get('title'),
-            mode=f.get('grading_mode'),
-            qArr=Array.from(questions.children).map(li=>{
-              const i=li.dataset.idx,
-                    prompt=f.get(`prompt${i}`),
-                    choices=[0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
-                    correct=[...li.querySelectorAll(`input[name="correct${i}"]:checked`)].map(c=>+c.value);
-              return {
-                prompt, choices,
-                correctIdx: correct.length===1 ? correct[0] : null,
-                multi: correct.length>1,
-                correctIdxSingle: correct[0]
-              };
-            });
-      await supa.from('quizzes').upsert([{id,title,grading_mode:mode,questions:qArr,published:false}]);
-      quizForm.reset(); questions.innerHTML=''; addQ.click();
-      loadQuizzes(); loadSubmissions();
-    };
-
-    // Submissions
-    async function loadSubmissions(){
-      const sec=document.getElementById('submissionsSection');
-      const { data: subs=[] } = await supa.from('submissions').select('*').order('time',{ascending:false});
-      if(!subs.length){ sec.innerHTML='<p>No submissions.</p>'; return; }
-      const grp = subs.reduce((a,s)=>{ (a[s.quiz_id]||(a[s.quiz_id]=[])).push(s); return a; }, {});
-      sec.innerHTML=Object.entries(grp).map(([qid,list])=>`
-        <div class="submission-dropdown">
-          <div class="submission-header" data-q="${qid}">Quiz ${qid} (${list.length})</div>
-          <div class="submission-list" id="subs-${qid}">
-            <table><thead><tr><th>Student</th><th>Score</th><th>Time</th><th></th></tr></thead>
-              <tbody>
-                ${list.map(r=>`
-                  <tr>
-                    <td>${r.student}</td><td>${r.score}</td>
-                    <td>${new Date(r.time).toLocaleString()}</td>
-                    <td><button class="delete-btn" data-id="${r.id}">Del</button></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+      // Build question item
+      let dragSrc = null;
+      function renderQuestion(idx, prompt='', choices=['',''], correct=[0]){
+        const li = document.createElement('li');
+        li.className = 'question-block';
+        li.draggable  = true;
+        li.dataset.idx = idx;
+        li.innerHTML = `
+          <div style="flex:1;">
+            <input name="prompt${idx}" placeholder="Prompt" value="${prompt}" />
+            ${choices.map((c,j)=>`
+              <div>
+                <input type="checkbox" name="correct${idx}" value="${j}" ${correct.includes(j)?'checked':''} />
+                <input name="choice${idx}${j}" placeholder="Choice ${j+1}" value="${c}" />
+              </div>
+            `).join('')}
           </div>
-        </div>
-      `).join('');
-      document.querySelectorAll('.submission-header').forEach(h=>{
-        h.onclick=()=>{ const lst=document.getElementById(`subs-${h.dataset.q}`);
-          lst.style.display = lst.style.display==='block'?'none':'block';
+          <button class="delete-q">✖</button>
+        `;
+        // Delete
+        li.querySelector('.delete-q').onclick = () => {
+          li.remove(); reorderQuestions();
         };
-      });
-      document.querySelectorAll('.delete-btn').forEach(b=>{
-        b.onclick=async()=>{ await supa.from('submissions').delete().eq('id',b.dataset.id); loadSubmissions(); };
-      });
-    }
+        // Drag
+        li.addEventListener('dragstart', e => {
+          li.classList.add('dragging');
+          dragSrc = li;
+        });
+        li.addEventListener('dragend', e => {
+          li.classList.remove('dragging');
+        });
+        li.addEventListener('dragover', e => e.preventDefault());
+        li.addEventListener('drop', e => {
+          e.preventDefault();
+          questions.insertBefore(dragSrc, li.nextSibling);
+          reorderQuestions();
+        });
+        return li;
+      }
+      function reorderQuestions(){
+        Array.from(questions.children).forEach((li,i) => {
+          li.dataset.idx = i;
+          Array.from(li.querySelectorAll('input')).forEach(inp => {
+            inp.name = inp.name.replace(/\d+/, i);
+          });
+        });
+      }
+      addQ.onclick = () => {
+        questions.appendChild(renderQuestion(questions.children.length));
+        reorderQuestions();
+      };
+      addQ.click();
 
-    // Links
-    async function loadLinks(){
-      const { data: ls=[] } = await supa.from('links').select('*').order('title');
-      const div=document.getElementById('linkList');
-      div.innerHTML=ls.map(l=>`
-        <div class="link-item">
-          <input class="inline-input" data-id="${l.id}" data-field="title" value="${l.title}">
-          <input class="inline-input" data-id="${l.id}" data-field="url" value="${l.url}">
-          <div>
-            <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpub':'Pub'}</button>
-            <button onclick="deleteLink('${l.id}')">Del</button>
+      // Save quiz
+      quizForm.onsubmit = async e => {
+        e.preventDefault();
+        const f = new FormData(quizForm),
+              id    = f.get('id'),
+              title = f.get('title'),
+              mode  = f.get('grading_mode'),
+              qArr  = Array.from(questions.children).map(li => {
+                const i = li.dataset.idx,
+                      prompt  = f.get(`prompt${i}`),
+                      choices = [0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
+                      correct = [...li.querySelectorAll(`input[name="correct${i}"]:checked`)].map(c=>+c.value);
+                return {
+                  prompt,
+                  choices,
+                  correctIdx: correct.length===1 ? correct[0] : null,
+                  multi: correct.length>1,
+                  correctIdxSingle: correct[0]
+                };
+              });
+        await supa.from('quizzes').upsert([{ id, title, grading_mode: mode, questions: qArr, published: false }]);
+        quizForm.reset(); questions.innerHTML=''; addQ.click();
+        loadQuizzes(); loadSubmissions();
+      };
+
+      // Load submissions
+      async function loadSubmissions(){
+        const { data: subs=[] } = await supa.from('submissions').select('*').order('time',{ ascending: false });
+        if (!subs.length) {
+          subsEl.innerHTML = '<p>No submissions yet.</p>';
+          return;
+        }
+        const grouped = subs.reduce((acc, s) => {
+          (acc[s.quiz_id] = acc[s.quiz_id]||[]).push(s);
+          return acc;
+        }, {});
+        subsEl.innerHTML = Object.entries(grouped).map(([qid,list]) => `
+          <div class="submission-dropdown">
+            <div class="submission-header" data-q="${qid}">Quiz ${qid} (${list.length})</div>
+            <div class="submission-list" id="subs-${qid}">
+              <table>
+                <thead><tr><th>Student</th><th>Score</th><th>Time</th><th></th></tr></thead>
+                <tbody>
+                  ${list.map(r=>`
+                    <tr>
+                      <td>${r.student}</td>
+                      <td>${r.score}</td>
+                      <td>${new Date(r.time).toLocaleString()}</td>
+                      <td><button class="delete-btn" data-id="${r.id}">Del</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      `).join('')||'<p>No links.</p>';
-      document.querySelectorAll('.inline-input').forEach(inp=>{
-        inp.onblur=async()=>{ await supa.from('links').update({[inp.dataset.field]:inp.value}).eq('id',inp.dataset.id); };
-      });
-    }
-    window.toggleLink=async(i,p)=>{await supa.from('links').update({published:p}).eq('id',i);loadLinks();}
-    window.deleteLink=async i=>{await supa.from('links').delete().eq('id',i);loadLinks();}
+        `).join('');
+        document.querySelectorAll('.submission-header').forEach(h => {
+          h.onclick = () => {
+            const lst = document.getElementById(`subs-${h.dataset.q}`);
+            lst.style.display = lst.style.display==='block'?'none':'block';
+          };
+        });
+        document.querySelectorAll('.delete-btn').forEach(b => {
+          b.onclick = async () => {
+            await supa.from('submissions').delete().eq('id', b.dataset.id);
+            loadSubmissions();
+          };
+        });
+      }
 
-    document.getElementById('linkForm').onsubmit=async e=>{ e.preventDefault();
-      const f=new FormData(e.target);
-      await supa.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
-      e.target.reset(); loadLinks();
-    };
+      // Links
+      async function loadLinks(){
+        const { data: ls=[] } = await supa.from('links').select('*').order('title');
+        linkListEl.innerHTML = ls.map(l=>`
+          <div class="link-item">
+            <input class="inline-input" data-id="${l.id}" data-field="title"  value="${l.title}" />
+            <input class="inline-input" data-id="${l.id}" data-field="url"    value="${l.url}" />
+            <div>
+              <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpub':'Pub'}</button>
+              <button onclick="deleteLink('${l.id}')">Del</button>
+            </div>
+          </div>
+        `).join('') || '<p>No links.</p>';
+        document.querySelectorAll('.inline-input').forEach(inp => {
+          inp.onblur = async () => {
+            await supa.from('links').update({ [inp.dataset.field]: inp.value }).eq('id', inp.dataset.id);
+          };
+        });
+      }
+      window.toggleLink = async (id,pub) => { await supa.from('links').update({ published: pub }).eq('id', id); loadLinks(); };
+      window.deleteLink = async id => { await supa.from('links').delete().eq('id', id); loadLinks(); };
 
-    // Init
-    loadQuizzes(); loadSubmissions(); loadLinks();
-  })();
+      linkForm.onsubmit = async e => {
+        e.preventDefault();
+        const f = new FormData(linkForm);
+        await supa.from('links').insert([{ id: f.get('id'), title: f.get('title'), url: f.get('url'), published: false }]);
+        linkForm.reset(); loadLinks();
+      };
+
+      // Initial load
+      loadQuizzes();
+      loadSubmissions();
+      loadLinks();
+    });
   </script>
 </body>
 </html>
