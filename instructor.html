@@ -43,59 +43,57 @@
       <input name="id" placeholder="Quiz ID" required>
       <input name="title" placeholder="Quiz Title" required>
       <div id="questionsContainer"></div>
-      <button type="button" class="add" id="addQuestion">Add Question</button>
+      <button type="button" id="addQuestion" class="add">Add Question</button>
       <button type="submit">Save Quiz</button>
     </form>
   </section>
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      const SUPA = supabase.createClient(
+      const supa = supabase.createClient(
         'https://kqprtnxmostvagtildsn.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
       );
 
-      // LINKS
+      // LINK HANDLERS
       async function loadLinks() {
-        const { data: links=[] } = await SUPA.from('links').select('*').order('title');
-        const list = document.getElementById('linkList');
-        list.innerHTML = links.map(l=>`
+        const { data: links=[] } = await supa.from('links').select('*').order('title');
+        document.getElementById('linkList').innerHTML = links.map(l=>`
           <div class="item">
             <span>${l.title}</span>
             <div class="controls">
-              <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpublish':'Publish'}</button>
+              <button onclick="toggleLink('${l.id}', ${!l.published})">${l.published?'Unpublish':'Publish'}</button>
               <button onclick="deleteLink('${l.id}')">Delete</button>
               <button onclick="window.open('${l.url}','_blank')">Open ↗</button>
             </div>
           </div>
         `).join('')||'<p>No links.</p>';
       }
-      window.toggleLink = async (id,p) => { await SUPA.from('links').update({published:p}).eq('id',id); loadLinks(); };
-      window.deleteLink = async id => { await SUPA.from('links').delete().eq('id',id); loadLinks(); };
+      window.toggleLink = async (id,p) => { await supa.from('links').update({published:p}).eq('id',id); loadLinks(); };
+      window.deleteLink = async id => { await supa.from('links').delete().eq('id',id); loadLinks(); };
       document.getElementById('addLink').onsubmit = async e => {
         e.preventDefault();
         const f=new FormData(e.target);
-        await SUPA.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
+        await supa.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
         e.target.reset(); loadLinks();
       };
       loadLinks();
 
-      // QUIZZES
+      // QUIZ HANDLERS
       async function loadQuizzes() {
-        const { data: quizzes=[] } = await SUPA.from('quizzes').select('*').order('id');
-        const list = document.getElementById('quizList');
-        list.innerHTML = quizzes.map(q=>`
+        const { data: quizzes=[] } = await supa.from('quizzes').select('*').order('id');
+        document.getElementById('quizList').innerHTML = quizzes.map(q=>`
           <div class="quiz-item">
             <span>${q.id} — ${q.title}</span>
             <div class="controls">
-              <button onclick="toggleQuiz('${q.id}',${!q.published})">${q.published?'Unpublish':'Publish'}</button>
+              <button onclick="toggleQuiz('${q.id}', ${!q.published})">${q.published?'Unpublish':'Publish'}</button>
               <button onclick="deleteQuiz('${q.id}')">Delete</button>
             </div>
           </div>
         `).join('')||'<p>No quizzes.</p>';
       }
-      window.toggleQuiz = async (id,p) => { await SUPA.from('quizzes').update({published:p}).eq('id',id); loadQuizzes(); };
-      window.deleteQuiz = async id => { await SUPA.from('quizzes').delete().eq('id',id); loadQuizzes(); };
+      window.toggleQuiz = async (id,p) => { await supa.from('quizzes').update({published:p}).eq('id',id); loadQuizzes(); };
+      window.deleteQuiz = async id => { await supa.from('quizzes').delete().eq('id',id); loadQuizzes(); };
       loadQuizzes();
 
       // Quiz builder
@@ -123,11 +121,11 @@
         const f=new FormData(qForm);
         const id=f.get('id'), title=f.get('title');
         const questions = Array.from(qCont.children).map((blk,i)=>({
-          prompt:f.get(`prompt${i}`),
-          choices:[0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
-          correctIdx:Number(f.get(`correct${i}`))||0
+          prompt: f.get(`prompt${i}`),
+          choices: [0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
+          correctIdx: Number(f.get(`correct${i}`))||0
         }));
-        await SUPA.from('quizzes').upsert([{id,title,questions,published:false}]);
+        await supa.from('quizzes').insert([{id,title,questions,published:false}]);
         qForm.reset(); qCont.innerHTML=''; document.getElementById('addQuestion').click(); loadQuizzes();
       };
     });
