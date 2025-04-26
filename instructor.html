@@ -5,20 +5,20 @@
   <title>Instructor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    body { font-family:system-ui,Arial,sans-serif; margin:1rem auto; max-width:1000px; }
-    h1,h2,h3 { color:#0c4a7f; }
-    .list { border:1px solid #ddd; padding:1rem; }
-    .quiz-item { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #eee; }
-    .quiz-item:last-child { border-bottom:none; }
-    .controls button { margin-left:.3rem; }
-    form { border:1px solid #ddd; padding:1rem; margin-top:1rem; }
-    .question-block { margin-bottom:1rem; padding:1rem; border:1px solid #ccc; }
-    .choice { display:flex; align-items:center; margin:.4rem 0; }
-    .choice input[type="checkbox"]{ margin-right:.5rem; }
-    input, select, button { width:100%; margin:.4rem 0; padding:.4rem; }
-    button.add { width:auto; }
-    table { width:100%; border-collapse:collapse; margin-top:.5rem; }
-    th,td { border:1px solid #ddd; padding:.5rem; text-align:left; }
+    body{font-family:system-ui,Arial,sans-serif;margin:1rem auto;max-width:1000px;}
+    h1,h2,h3{color:#0c4a7f;}
+    .list{border:1px solid #ddd;padding:1rem;}
+    .quiz-item{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid #eee;}
+    .quiz-item:last-child{border-bottom:none;}
+    .controls button{margin-left:.3rem;}
+    form{border:1px solid #ddd;padding:1rem;margin-top:1rem;}
+    .question-block{margin-bottom:1rem;padding:1rem;border:1px solid #ccc;}
+    .choice{display:flex;align-items:center;margin:.4rem 0;}
+    .choice input{margin-right:.5rem;}
+    input,select,button{width:100%;margin:.4rem 0;padding:.4rem;}
+    button.add{width:auto;}
+    table{width:100%;border-collapse:collapse;margin-top:.5rem;}
+    th,td{border:1px solid #ddd;padding:.5rem;text-align:left;}
   </style>
 </head>
 <body>
@@ -27,7 +27,7 @@
   <!-- Quizzes -->
   <section>
     <h2>Manage Quizzes</h2>
-    <div class="list" id="quizList">Loading quizzes…</div>
+    <div id="quizList" class="list">Loading quizzes…</div>
 
     <h3>Create / Edit Quiz</h3>
     <form id="addQuiz">
@@ -44,8 +44,7 @@
 
     <div id="submissionsSection" style="display:none;">
       <h3>Submissions for <span id="subQuizId"></span></h3>
-      <table>
-        <thead><tr><th>Student</th><th>Score</th><th>Time</th></tr></thead>
+      <table><thead><tr><th>Student</th><th>Score</th><th>Time</th></tr></thead>
         <tbody id="subsList"></tbody>
       </table>
     </div>
@@ -60,66 +59,51 @@
       <input name="url" placeholder="https://example.com" required>
       <button type="submit">Add Link</button>
     </form>
-    <div class="list" id="linkList">Loading links…</div>
+    <div id="linkList" class="list">Loading links…</div>
   </section>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const supa = supabase.createClient(
+    document.addEventListener('DOMContentLoaded',async()=>{
+      const supa=supabase.createClient(
         'https://kqprtnxmostvagtildsn.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcHJ0bnhtb3N0dmFndGlsZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzkzNzcsImV4cCI6MjA2MTExNTM3N30.-vU2hAJuA7JLkRjj1iOBAN9Y0pDEr3DU4XKjEp7NOUc'
       );
 
-      // Load quizzes
-      async function loadQuizzes() {
-        const { data: quizzes=[] } = await supa
-          .from('quizzes').select('id,title,grading_mode,published').order('id');
-        document.getElementById('quizList').innerHTML = quizzes.map(q=>`
+      // Load & render quizzes
+      async function loadQuizzes(){
+        const {data:qs=[]} = await supa.from('quizzes')
+          .select('id,title,grading_mode,published').order('id');
+        document.getElementById('quizList').innerHTML=qs.map(q=>`
           <div class="quiz-item">
-            <span onclick="viewSubs('${q.id}')" style="cursor:pointer;">
-              ${q.id} — ${q.title}
-            </span>
-            <span>[mode: ${q.grading_mode}]</span>
+            <span onclick="viewSubs('${q.id}')" style="cursor:pointer;">${q.id} — ${q.title}</span>
+            <span>[${q.grading_mode}]</span>
             <div class="controls">
-              <button onclick="toggleQuiz('${q.id}',${!q.published})">
-                ${q.published?'Unpublish':'Publish'}
-              </button>
-              <button onclick="deleteQuiz('${q.id}')">Delete</button>
+              <button onclick="toggleQuiz('${q.id}',${!q.published})">${q.published?'Unpub':'Pub'}</button>
+              <button onclick="deleteQuiz('${q.id}')">Del</button>
             </div>
           </div>
-        `).join('') || '<p>No quizzes.</p>';
+        `).join('')||'<p>No quizzes.</p>';
       }
-
-      window.toggleQuiz = async (id,p) => {
-        await supa.from('quizzes').update({published:p}).eq('id',id);
-        loadQuizzes();
-      };
-      window.deleteQuiz = async id => {
-        await supa.from('quizzes').delete().eq('id',id);
-        loadQuizzes();
-      };
+      window.toggleQuiz=async(id,p)=>{await supa.from('quizzes').update({published:p}).eq('id',id);loadQuizzes();};
+      window.deleteQuiz=async id=>{await supa.from('quizzes').delete().eq('id',id);loadQuizzes();};
       loadQuizzes();
 
       // View submissions
-      window.viewSubs = async id => {
-        document.getElementById('subQuizId').textContent = id;
-        const { data=subs=[] } = await supa
-          .from('submissions').select('student,score,time').eq('quiz_id',id).order('time',{ascending:false});
-        document.getElementById('subsList').innerHTML = subs.map(s=>`
-          <tr>
-            <td>${s.student}</td>
-            <td>${s.score||''}</td>
-            <td>${new Date(s.time).toLocaleString()}</td>
-          </tr>
+      window.viewSubs=async id=>{
+        document.getElementById('subQuizId').textContent=id;
+        const {data:subs=[]}=await supa.from('submissions')
+          .select('student,score,time').eq('quiz_id',id).order('time',{ascending:false});
+        document.getElementById('subsList').innerHTML=subs.map(s=>`
+          <tr><td>${s.student}</td><td>${s.score}</td>
+          <td>${new Date(s.time).toLocaleString()}</td></tr>
         `).join('');
-        document.getElementById('submissionsSection').style.display = 'block';
+        document.getElementById('submissionsSection').style.display='block';
       };
 
       // Quiz builder
-      const qForm = document.getElementById('addQuiz'), qCont = document.getElementById('questionsContainer');
-      document.getElementById('addQuestion').onclick = () => {
-        const i=qCont.children.length;
-        const blk=document.createElement('div');
+      const qForm=document.getElementById('addQuiz'), qCont=document.getElementById('questionsContainer');
+      document.getElementById('addQuestion').onclick=()=>{
+        const i=qCont.children.length,blk=document.createElement('div');
         blk.className='question-block';
         blk.innerHTML=`
           <input name="prompt${i}" placeholder="Prompt" required>
@@ -133,41 +117,41 @@
       };
       document.getElementById('addQuestion').click();
 
-      qForm.onsubmit = async e => {
+      qForm.onsubmit=async e=>{
         e.preventDefault();
-        const f=new FormData(qForm), id=f.get('id'), title=f.get('title'), mode=f.get('grading_mode');
+        const f=new FormData(qForm),id=f.get('id'),title=f.get('title'),mode=f.get('grading_mode');
         const questions=Array.from(qCont.children).map((blk,i)=>({
-          prompt: f.get(`prompt${i}`),
-          choices: [0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
-          correctIdx: Number(f.get(`correct${i}`))||0
+          prompt:f.get(`prompt${i}`),
+          choices:[0,1,2,3].map(j=>f.get(`choice${i}${j}`)),
+          correctIdx:Number(f.get(`correct${i}`))||0
         }));
         await supa.from('quizzes').upsert([{id,title,grading_mode:mode,questions,published:false}]);
-        qForm.reset(); qCont.innerHTML=''; document.getElementById('addQuestion').click();
+        qForm.reset();qCont.innerHTML='';document.getElementById('addQuestion').click();
         document.getElementById('submissionsSection').style.display='none';
         loadQuizzes();
       };
 
-      // Links management
-      async function loadLinks() {
-        const { data: links=[] } = await supa.from('links').select('*').order('title');
-        document.getElementById('linkList').innerHTML = links.map(l=>`
+      // Links
+      async function loadLinks(){
+        const {data:ls=[]}=await supa.from('links').select('*').order('title');
+        document.getElementById('linkList').innerHTML=ls.map(l=>`
           <div class="quiz-item">
             <span>${l.title}</span>
             <div class="controls">
-              <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpublish':'Publish'}</button>
-              <button onclick="deleteLink('${l.id}')">Delete</button>
-              <button onclick="window.open('${l.url}','_blank')">Open ↗</button>
+              <button onclick="toggleLink('${l.id}',${!l.published})">${l.published?'Unpub':'Pub'}</button>
+              <button onclick="deleteLink('${l.id}')">Del</button>
+              <button onclick="window.open('${l.url}','_blank')">Open</button>
             </div>
           </div>
         `).join('')||'<p>No links.</p>';
       }
-      window.toggleLink = async (id,p) => { await supa.from('links').update({published:p}).eq('id',id); loadLinks(); };
-      window.deleteLink = async id => { await supa.from('links').delete().eq('id',id); loadLinks(); };
-      document.getElementById('addLink').onsubmit = async e => {
+      window.toggleLink=async(id,p)=>{await supa.from('links').update({published:p}).eq('id',id);loadLinks();};
+      window.deleteLink=async id=>{await supa.from('links').delete().eq('id',id);loadLinks();};
+      document.getElementById('addLink').onsubmit=async e=>{
         e.preventDefault();
         const f=new FormData(e.target);
         await supa.from('links').insert([{id:f.get('id'),title:f.get('title'),url:f.get('url'),published:false}]);
-        e.target.reset(); loadLinks();
+        e.target.reset();loadLinks();
       };
       loadLinks();
     });
